@@ -13,9 +13,6 @@ test("initial plan renders coherent cut list, 3D faces, patterns and panel views
   await expect(page.locator("#pieceList .piece")).toHaveCount(4);
   await expect(page.locator("#partViews .part-view-card")).toHaveCount(4);
   await expect(page.locator("#cabinetPreview svg [data-face]")).toHaveCount(17);
-  await expect(page.locator("#cabinetPreview svg")).toHaveCount(0);
-  await expect(page.locator("#cutRows tr")).toHaveCount(0);
-  await expect(page.locator("#pieceList .piece")).toHaveCount(0);
   await expect(page.locator("#mathTestStatus")).toHaveText("Passed");
   await expect(page.locator("#cutRows")).toContainText("26 × 45");
   await expect(page.locator("#cutRows")).toContainText("34 × 26");
@@ -44,12 +41,16 @@ test("changing dimensions updates all outputs from the same generated plan", asy
   expect(errors).toEqual([]);
 });
 
-test("rejects invalid geometry without producing a valid plan", async ({ page }) => {
+test("rejects impossible geometry and clears the previous plan", async ({ page }) => {
   await page.goto(appUrl);
-  await page.locator("#width").fill("2");
+  await page.locator("#width").fill("10");
+  await page.locator("#thickness").fill("10");
   await page.locator("#generate").click();
-  await expect(page.locator("#error")).toContainText("width must be greater");
-  await expect(page.locator("#cabinetPreview svg")).toHaveAttribute("data-model-width", "36");
+  await expect(page.locator("#error")).toContainText("greater than twice");
+  await expect(page.locator("#cabinetPreview svg")).toHaveCount(0);
+  await expect(page.locator("#cutRows tr")).toHaveCount(0);
+  await expect(page.locator("#pieceList .piece")).toHaveCount(0);
+  await expect(page.locator("#partViews .exploded-diagram")).toHaveCount(0);
 });
 
 test("tolerance calculator responds and reports a numeric mismatch budget", async ({ page }) => {
