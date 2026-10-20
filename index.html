@@ -722,6 +722,7 @@ function makeNsOrtho(m){
 }
 function renderNightstandPdf(model){
  const m=model;
+ const materialNames = {cardboard:"Cardboard / paperboard",corrugated:"Corrugated cardboard",basswood:"Basswood / craft wood",plywood:"Thin plywood"};
  const byId=id=>document.getElementById(id);
  byId("nsPdfSummary").textContent="Outside size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · "+(materialNames[m.material]||"Cardboard / paperboard")+" · thickness "+nsFmt(m.t)+" mm · scale "+(m.scale===1?"custom / not to scale":"1:"+m.scale+" (full-size equivalent "+nsFmt(m.W*m.scale)+" × "+nsFmt(m.H*m.scale)+" × "+nsFmt(m.D*m.scale)+" mm)")+" · support style: four separate corner legs.";
  byId("nsExplodedView").innerHTML=m.explodedSvg;
