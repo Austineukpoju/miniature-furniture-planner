@@ -23,7 +23,7 @@ button{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:75
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}.stat{background:var(--mint);border-radius:12px;padding:11px}.stat strong{display:block;font-size:1.15rem;color:var(--ink)}.stat span{font-size:.75rem;color:var(--muted)}
 .preview-stage{background:linear-gradient(145deg,#f8fbf8,#edf5ef);border:1px solid var(--line);border-radius:14px;padding:10px;overflow:hidden}.preview-stage svg{display:block;width:100%;height:auto;max-height:360px;margin:auto}.preview-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-top:10px}.preview-legend span{display:flex;align-items:center;gap:5px}.preview-legend i{display:inline-block;width:13px;height:13px;border:1px solid #315f4c;border-radius:3px}.legend-top{background:#d9e9dd}.legend-side{background:#9fbea9}.legend-back{background:#f4f0e4}
 table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.04em}
-.piece-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.piece{border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.piece svg{display:block;max-width:100%;height:auto;margin:8px auto 0}.piece .dims{font-weight:750}.piece .qty{color:var(--muted);font-size:.83rem}
+.part-view-list{display:grid;grid-template-columns:1fr;gap:12px}.part-view-card{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;border:1px solid #e1cbb8;border-radius:14px;padding:12px;background:#fffaf5;min-width:0}.part-view-graphic{background:#f8efe5;border-radius:10px;padding:8px;min-width:0}.part-view-graphic svg{display:block;width:100%;height:auto;max-height:230px}.part-view-copy h3{color:#79543a}.part-view-copy p{margin:5px 0;font-size:.88rem}@media(min-width:620px){.part-view-card{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}}\n.piece-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.piece{border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.piece svg{display:block;max-width:100%;height:auto;margin:8px auto 0}.piece .dims{font-weight:750}.piece .qty{color:var(--muted);font-size:.83rem}
 .steps{padding-left:22px;margin:0}.steps li{padding:0 0 12px 4px}.steps li:last-child{padding-bottom:0}.stepnum{font-weight:800;color:var(--green)}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 @media(min-width:680px){.fields{grid-template-columns:repeat(4,minmax(0,1fr))}.piece-list{grid-template-columns:repeat(3,minmax(0,1fr))}main{padding-top:24px}}
@@ -47,6 +47,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 <p id="error" role="alert" style="color:#a12b2b;font-weight:700;margin-bottom:0"></p>
 </section>
 <section class="panel" id="preview"><h2>2. 3D-style design preview</h2><p class="muted">A proportional illustration generated from the same dimensions used by the cutting list. This is a visual preview, not a print-scale template.</p><div id="cabinetPreview" class="preview-stage" aria-live="polite"></div><div class="preview-legend"><span><i class="legend-top"></i> Top</span><span><i class="legend-side"></i> Side</span><span><i class="legend-back"></i> Rear panel</span></div><p id="previewCaption" class="hint">The preview updates when you generate a new plan.</p></section>
+<section class="panel" id="partViewsSection"><h2>3. Individual panel views</h2><p class="muted">Warm brown views of each panel update when you change the cabinet dimensions. These are explanatory illustrations, not print-scale cutting templates.</p><div id="partViews" class="part-view-list"></div></section>
 <section class="panel" id="summary">
 <h2>2. Your cabinet plan</h2>
 <div class="stats"><div class="stat"><strong id="sizeLabel">36 × 45 × 27</strong><span>Width × height × depth (mm)</span></div><div class="stat"><strong id="pieceCount">5 panels</strong><span>Individual pieces to cut</span></div><div class="stat"><strong id="materialLabel">1 mm</strong><span>Material thickness</span></div></div>
@@ -397,34 +398,45 @@ updateToleranceDisplay();
 
 
 function renderCabinetPreview(plan) {
- const host = document.getElementById("cabinetPreview");
- const caption = document.getElementById("previewCaption");
- if (!host || !plan || !plan.ok) return;
- const W=plan.input.W, H=plan.input.H, D=plan.input.D, t=plan.input.t;
- const bodyD=D-t, kx=.42, ky=.25;
- const scale=Math.min(190/(W+bodyD*kx),175/(H+bodyD*ky),2.5);
- const left=(360-W*scale-bodyD*kx*scale)/2, top=42+bodyD*ky*scale;
+ const host=$("cabinetPreview"), caption=$("previewCaption");
+ if(!host||!plan||!plan.ok)return;
+ const {W,H,D,t}=plan.input,bodyD=D-t,kx=.42,ky=.24;
+ const scale=Math.min(190/(W+bodyD*kx),170/(H+bodyD*ky),2.5);
+ const left=(360-W*scale-bodyD*kx*scale)/2,top=42+bodyD*ky*scale;
  const P=(x,y,z)=>[left+x*scale+y*kx*scale,top+(H-z)*scale-y*ky*scale];
- const poly=pts=>pts.map(q=>{const p=P(q[0],q[1],q[2]);return p[0].toFixed(2)+","+p[1].toFixed(2)}).join(" ");
- const face=(pts,fill)=>'<polygon points="'+poly(pts)+'" fill="'+fill+'" stroke="#315f4c" stroke-width="1.1" stroke-linejoin="round"/>';
- const line=(a,b)=>{const p=P(a[0],a[1],a[2]),q=P(b[0],b[1],b[2]);return '<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="#315f4c" stroke-width="1.4"/>'};
- let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 280" role="img" aria-label="Open-front cabinet 3D-style preview">';
- svg+='<text x="180" y="17" text-anchor="middle" font-size="10" fill="#65746c">PROPORTIONAL PREVIEW · NOT PRINT SCALE</text>';
- // Explicit geometry: x=width, y=depth, z=height; front is y=0.
- svg+=face([[0,bodyD,0],[W,bodyD,0],[W,bodyD,H],[0,bodyD,H]],"#f4f0e4");
- svg+=face([[0,0,0],[0,bodyD,0],[0,bodyD,H],[0,0,H]],"#9fbea9");
- svg+=face([[W,0,0],[W,bodyD,0],[W,bodyD,H],[W,0,H]],"#83a991");
- svg+=face([[0,0,H],[0,bodyD,H],[W,bodyD,H],[W,0,H]],"#d9e9dd");
- svg+=face([[t,0,t],[t,bodyD,t],[W-t,bodyD,t],[W-t,0,t]],"#c8ddce");
- svg+=face([[t,0,H-t],[t,bodyD,H-t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#e4eee6");
- svg+=face([[t,0,t],[t,bodyD,t],[t,bodyD,H-t],[t,0,H-t]],"#a9c8b3");
- svg+=face([[W-t,0,t],[W-t,bodyD,t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#91b49d");
- svg+=face([[t,0,0],[t,bodyD,0],[W-t,bodyD,0],[W-t,0,0]],"#b9d2c1");
- // Front remains open; outline the opening and show the rear panel.
+ const poly=pts=>pts.map(v=>{const p=P(...v);return p[0].toFixed(2)+","+p[1].toFixed(2)}).join(" ");
+ const face=(pts,fill)=>'<polygon points="'+poly(pts)+'" fill="'+fill+'" stroke="#79543a" stroke-width="1.1" stroke-linejoin="round"/>';
+ const line=(a,b)=>{const p=P(...a),q=P(...b);return '<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="#5c3b27" stroke-width="1.4"/>'};
+ let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 280" role="img" aria-label="Brown open-front cabinet proportional preview">';
+ svg+='<text x="180" y="17" text-anchor="middle" font-size="10" fill="#79543a">PROPORTIONAL 3D-STYLE VIEW · NOT PRINT SCALE</text>';
+ // Coordinate model: x=width, y=body depth, z=height; front is open.
+ svg+=face([[0,bodyD,0],[W,bodyD,0],[W,bodyD,H],[0,bodyD,H]],"#c59a70");
+ svg+=face([[0,0,0],[0,bodyD,0],[0,bodyD,H],[0,0,H]],"#a56f46");
+ svg+=face([[W,0,0],[W,bodyD,0],[W,bodyD,H],[W,0,H]],"#8f5c38");
+ svg+=face([[0,0,H],[0,bodyD,H],[W,bodyD,H],[W,0,H]],"#d6ad83");
+ svg+=face([[t,0,H-t],[t,bodyD,H-t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#c99768");
+ svg+=face([[t,0,t],[t,bodyD,t],[W-t,bodyD,t],[W-t,0,t]],"#b78153");
+ svg+=face([[t,0,t],[t,bodyD,t],[t,bodyD,H-t],[t,0,H-t]],"#bd8a5e");
+ svg+=face([[W-t,0,t],[W-t,bodyD,t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#a9754d");
+ svg+=face([[t,0,0],[t,bodyD,0],[W-t,bodyD,0],[W-t,0,0]],"#c08d60");
  svg+=line([0,0,0],[0,0,H])+line([W,0,0],[W,0,H])+line([0,0,H],[W,0,H])+line([0,0,0],[W,0,0]);
- svg+='<g fill="#173f35" font-size="10" font-weight="600"><text x="180" y="254" text-anchor="middle">Width: '+fmt(W)+' mm</text><text x="12" y="145">Height: '+fmt(H)+' mm</text><text x="265" y="231" text-anchor="middle">Depth: '+fmt(D)+' mm</text></g></svg>';
+ svg+='<g fill="#5c3b27" font-size="10" font-weight="600"><text x="180" y="254" text-anchor="middle">Width: '+fmt(W)+' mm</text><text x="12" y="145">Height: '+fmt(H)+' mm</text><text x="265" y="231" text-anchor="middle">Depth: '+fmt(D)+' mm</text></g></svg>';
  host.innerHTML=svg;
- if(caption) caption.textContent='Open-front cabinet · outside size '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm. Body depth is '+fmt(bodyD)+' mm; the rear panel adds '+fmt(t)+' mm.';
+ if(caption)caption.textContent='Open-front cabinet · outside size '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm. Body depth '+fmt(bodyD)+' mm plus rear panel thickness '+fmt(t)+' mm. Preview adjusts with the dimensions.';
+}
+function renderPartViews(plan){
+ const host=$("partViews");if(!host||!plan||!plan.ok)return;
+ const t=plan.input.t, parts=[
+  {id:"A",name:"Side panel",qty:2,w:plan.input.D-t,h:plan.input.H,color:"#a56f46",note:"Cut two identical sides."},
+  {id:"B",name:"Top panel",qty:1,w:plan.input.W-2*t,h:plan.input.D-t,color:"#d6ad83",note:"Fits between the side panels."},
+  {id:"C",name:"Bottom panel",qty:1,w:plan.input.W-2*t,h:plan.input.D-t,color:"#c08d60",note:"Fits between the side panels."},
+  {id:"D",name:"Back panel",qty:1,w:plan.input.W,h:plan.input.H,color:"#c59a70",note:"Covers the rear edges and adds t to total depth."}
+ ];
+ host.innerHTML=parts.map(p=>{
+  const sc=Math.min(210/p.w,108/p.h,3),rw=p.w*sc,rh=p.h*sc,x=(260-rw)/2,y=25;
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 160" role="img" aria-label="Part '+p.id+', '+p.name+', '+fmt(p.w)+' by '+fmt(p.h)+' millimetres"><text x="130" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="#5c3b27">PART '+p.id+'</text><rect x="'+x.toFixed(2)+'" y="'+y+'" width="'+rw.toFixed(2)+'" height="'+rh.toFixed(2)+'" fill="'+p.color+'" stroke="#5c3b27" stroke-width="1.5"/><text x="130" y="'+Math.min(145,y+rh+14)+'" text-anchor="middle" font-size="10" fill="#5c3b27">'+fmt(p.w)+' × '+fmt(p.h)+' mm</text><text x="130" y="157" text-anchor="middle" font-size="9" fill="#79543a">CUT '+p.qty+'</text></svg>';
+  return '<article class="part-view-card"><div class="part-view-graphic">'+svg+'</div><div class="part-view-copy"><h3>Part '+p.id+' — '+p.name+'</h3><p><strong>Cut '+p.qty+'</strong> · '+fmt(p.w)+' × '+fmt(p.h)+' mm</p><p>'+p.note+'</p><p class="muted">Illustration only; use the stated dimensions for accurate cutting.</p></div></article>';
+ }).join("");
 }
 
 </script>
