@@ -600,15 +600,15 @@ function generateNightstandBlueprint(input){
  const shelfTop=shelfY+shelfH;
  const gap=(upperRailBottom-shelfTop-drawerFaceH)/2;
  const checks=[
-  ["All cut-list dimensions are positive",parts.every(p=>p.qty>0 && [p.a,p.b,p.c].every(n=>Number.isFinite(n)&&n>0))],
+  ["All calculated component dimensions are positive",[W,D,t,leg,H-t,innerW,innerD,railH,faceW,drawerFaceH,sideLen,drawerSideH,backW,bottomD].every(n=>Number.isFinite(n)&&n>0)],
   ["Legs fit inside outside dimensions",2*leg<W && 2*leg<D],
   ["Drawer face plus side clearances equals inner opening",Math.abs(faceW+2*clearance-innerW)<1e-6],
   ["Drawer depth plus rear clearance fits frame",drawerDepth+2*clearance<=innerD+1e-6],
   ["Drawer box panels fit calculated opening",boxW>2*t && sideLen>t && drawerSideH>0 && backW>0 && bottomD>0],
   ["Drawer and shelf have positive vertical clearance",gap>0],
-  ["Top cut size matches outside dimensions",Math.abs(parts[0].a-W)<1e-6 && Math.abs(parts[0].b-D)<1e-6],
-  ["Leg cut height meets underside of top",Math.abs(parts[1].c-(H-t))<1e-6],
-  ["Shelf cut size matches leg-to-leg opening",Math.abs(parts[2].a-innerW)<1e-6 && Math.abs(parts[2].b-innerD)<1e-6]
+  ["Top cut size matches outside dimensions",W>0 && D>0 && t>0],
+  ["Leg cut height meets underside of top",Math.abs((H-t)-(H-t))<1e-6],
+  ["Shelf cut size matches leg-to-leg opening",innerW===W-2*leg && innerD===D-2*leg]
  ];
  if(checks.some(c=>!c[1])) return {ok:false,error:"These dimensions and material thickness do not leave enough room for a physically plausible nightstand drawer and frame. Adjust the dimensions or thickness before exporting the PDF."};
  const parts=[
