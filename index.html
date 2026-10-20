@@ -31,6 +31,15 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 
 /* PDF-only nightstand blueprint: never shown in the normal app interface. */
 #nightstandPdfSection{display:none}
+@media print{
+ #nightstandPdfSection{display:none!important}
+ body.print-nightstand #nightstandPdfSection{display:block!important}
+ body.print-nightstand #nightstandPdfSection .ns-pdf-page{display:block;break-before:page;page-break-before:always;break-inside:auto;page-break-inside:auto;margin:0;padding:0;min-height:0}
+ body.print-nightstand #nightstandPdfSection .ns-drawing{max-height:180mm}
+ body.print-nightstand #nightstandPdfSection .ns-views{grid-template-columns:1fr 1fr}
+ body.print-nightstand #nightstandPdfSection .ns-view-card{break-inside:avoid}
+ body.print-nightstand #nightstandPdfSection .ns-cut-table{font-size:8pt}
+}
 .ns-pdf-page{background:#fff;color:#111;padding:10mm;min-height:245mm;font-family:Arial,Helvetica,sans-serif}
 .ns-pdf-page h2,.ns-pdf-page h3{color:#111;margin:0 0 4mm}
 .ns-pdf-page p{margin:2mm 0 4mm}
@@ -67,6 +76,11 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 <div class="field"><label for="height">Outside height (mm)</label><input id="height" type="number" min="10" max="500" step="1" value="45"></div>
 <div class="field"><label for="depth">Outside depth (mm)</label><input id="depth" type="number" min="5" max="500" step="1" value="27"></div>
 <div class="field"><label for="thickness">Cardboard thickness (mm)</label><input id="thickness" type="number" min="0.2" max="10" step="0.1" value="1"></div>
+</div>
+<div id="nightstandOptions" class="fields" style="display:none;margin-top:12px">
+ <div class="field"><label for="materialType">Nightstand material</label><select id="materialType"><option value="cardboard" selected>Cardboard</option><option value="paperboard">Paperboard</option><option value="foamboard">Foam board</option></select></div>
+ <div class="field"><label for="miniScale">Miniature scale reference</label><select id="miniScale"><option value="custom">Custom miniature dimensions</option><option value="12">1:12</option><option value="24" selected>1:24</option><option value="48">1:48</option></select></div>
+ <p class="hint" style="grid-column:1/-1;margin:0">These options affect the nightstand PDF notes only. Your entered dimensions remain the actual miniature's millimetre dimensions; material choice does not automatically change thickness or certify strength.</p>
 </div>
 <p class="hint">Measurements are the finished miniature's outside dimensions. Use a ruler or caliper if possible. This first design is an open-front cabinet without a door or drawer.</p>
 <div class="actions"><button class="primary" id="generate">Update my plan</button><button class="secondary" id="print">Print / Save as PDF</button><button class="secondary" id="download">Save plan as text</button></div>
@@ -149,7 +163,17 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
     <tr><td>Lower shelf to frame</td><td>Shelf is sized to fit between the four legs.</td><td>Confirm the chosen support method and shelf height before gluing.</td></tr>
     <tr><td>Drawer box</td><td>Side walls, rear wall and bottom are separate calculated panels.</td><td>Dry-fit the box; slide hardware and running friction are not validated.</td></tr>
    </tbody></table>
-   <p class="ns-note">Joint model: simple butt/glue joints only. No dowels, grooves, rabbets, tabs or fastener allowances are included. A physical prototype is required before treating this as construction-ready.</p>
+   <p id="nsJointNote" class="ns-note">Joint model: simple butt/glue joints only. No dowels, grooves, rabbets, tabs or fastener allowances are included. A physical prototype is required before treating this as construction-ready.</p>
+  </div>
+ </article>
+ <article class="ns-pdf-page">
+  <p class="ns-kicker">Assembly sequence</p>
+  <h2>Build order and joint-fit checks</h2>
+  <ol id="nsAssemblySteps"></ol>
+  <div class="ns-view-card">
+   <h3>Joint preparation checklist</h3>
+   <ul id="nsJointChecks"></ul>
+   <p class="ns-note">The drawing uses simple butt/glue joints. It does not add slots, tabs, rabbets, dowels or hardware. Choose and test a joint detail with a small offcut before committing to the final parts.</p>
   </div>
  </article>
  <article class="ns-pdf-page">
@@ -344,7 +368,21 @@ function render() {
 
 $("generate").addEventListener("click", render);
 ["width", "height", "depth", "thickness"].forEach(id => $(id).addEventListener("change", render));
-$("print").addEventListener("click", () => { render(); if ($("error").textContent || !currentPlan) return; if ($("planOutput").value === "nightstand") { const ns = generateNightstandBlueprint(currentPlan.input); if (!ns.ok) { $("error").textContent = ns.error; return; } renderNightstandPdf(ns.model); } else { const pdf = document.getElementById("nightstandPdfSection"); if (pdf) pdf.innerHTML = ""; } window.print(); });
+$("planOutput").addEventListener("change", () => { $("nightstandOptions").style.display = $("planOutput").value === "nightstand" ? "grid" : "none"; });
+$("print").addEventListener("click", () => {
+  render();
+  if ($("error").textContent || !currentPlan) return;
+  if ($("planOutput").value === "nightstand") {
+    const ns = generateNightstandBlueprint({...currentPlan.input, materialType:$("materialType").value, miniScale:$("miniScale").value});
+    if (!ns.ok) { $("error").textContent = ns.error; return; }
+    renderNightstandPdf(ns.model);
+    document.body.classList.add("print-nightstand");
+  } else {
+    document.body.classList.remove("print-nightstand");
+  }
+  window.print();
+});
+window.addEventListener("afterprint", () => document.body.classList.remove("print-nightstand"));
 $("download").addEventListener("click", () => {
   render();
   if ($("error").textContent || !currentPlan) return;
@@ -582,6 +620,8 @@ function nsDim(x1,y1,x2,y2,label,offset=0){
 }
 function generateNightstandBlueprint(input){
  const {W,H,D,t}=input;
+ const materialType=input.materialType||"cardboard";
+ const miniScale=input.miniScale==="custom"||!input.miniScale?null:Number(input.miniScale);
  const leg=Math.max(2.7*t,W*.075);
  const railH=Math.max(3*t,H*.1);
  const shelfH=t;
@@ -601,15 +641,20 @@ function generateNightstandBlueprint(input){
  const shelfTop=shelfY+shelfH;
  const gap=(upperRailBottom-shelfTop-drawerFaceH)/2;
  const checks=[
-  ["All calculated component dimensions are positive",[W,D,t,leg,H-t,innerW,innerD,railH,faceW,drawerFaceH,sideLen,drawerSideH,backW,bottomD].every(n=>Number.isFinite(n)&&n>0)],
-  ["Legs fit inside outside dimensions",2*leg<W && 2*leg<D],
+  ["All calculated component dimensions are finite and positive",[W,H,D,t,leg,H-t,innerW,innerD,railH,faceW,drawerFaceH,sideLen,drawerSideH,backW,bottomD].every(n=>Number.isFinite(n)&&n>0)],
+  ["Corner legs fit within the outside width and depth",2*leg<W && 2*leg<D],
+  ["Frame rails fit between the inner faces of the legs",innerW>0 && innerD>0 && railH<H-t],
   ["Drawer face plus side clearances equals inner opening",Math.abs(faceW+2*clearance-innerW)<1e-6],
-  ["Drawer depth plus rear clearance fits frame",drawerDepth+2*clearance<=innerD+1e-6],
-  ["Drawer box panels fit calculated opening",boxW>2*t && sideLen>t && drawerSideH>0 && backW>0 && bottomD>0],
-  ["Drawer and shelf have positive vertical clearance",gap>0],
+  ["Drawer face remains narrower than the frame opening",faceW>0 && faceW<innerW],
+  ["Drawer depth plus rear clearance fits frame",drawerDepth+2*clearance<=innerD+1e-6 && drawerDepth>0],
+  ["Drawer box panels have valid widths, depths and wall height",boxW>2*t && sideLen>t && drawerSideH>0 && backW>0 && bottomD>0],
+  ["Drawer bottom fits inside the drawer side walls",bottomD>0 && backW>0 && bottomD<sideLen+1e-6],
+  ["Drawer and shelf have positive vertical clearance",gap>0 && shelfTop<upperRailBottom],
   ["Top cut size matches outside dimensions",W>0 && D>0 && t>0],
-  ["Leg cut height meets underside of top",Math.abs((H-t)-(H-t))<1e-6],
-  ["Shelf cut size matches leg-to-leg opening",innerW===W-2*leg && innerD===D-2*leg]
+  ["Leg cut height leaves room for the top thickness",Math.abs((H-t)+t-H)<1e-6],
+  ["Shelf fits between leg inner faces",Math.abs(innerW-(W-2*leg))<1e-6 && Math.abs(innerD-(D-2*leg))<1e-6],
+  ["Selected scale reference is supported",miniScale===null || [12,24,48].includes(miniScale)],
+  ["Material selection is recognised",["cardboard","paperboard","foamboard"].includes(materialType)]
  ];
  if(checks.some(c=>!c[1])) return {ok:false,error:"These dimensions and material thickness do not leave enough room for a physically plausible nightstand drawer and frame. Adjust the dimensions or thickness before exporting the PDF."};
  const parts=[
@@ -624,7 +669,24 @@ function generateNightstandBlueprint(input){
   {id:"09",name:"Drawer back",qty:1,a:backW,b:drawerSideH,c:t,purpose:"Rear wall fits between drawer sides"},
   {id:"10",name:"Drawer bottom",qty:1,a:backW,b:bottomD,c:t,purpose:"Bottom panel fits inside drawer box"}
  ];
- const model={W,H,D,t,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks};
+ const assemblySteps=[
+  "Dry-lay all four corner legs and label the front, rear, left and right positions. Confirm the leg lengths are H minus top thickness.",
+  "Glue the front and rear rails between the corresponding leg inner faces. Keep the top ends flush and check the frame is square.",
+  "Fit the two side rails between the side leg pairs. Dry-fit first; do not force bowed or oversized pieces into place.",
+  "Mark the shelf height on all four legs, then fit the lower shelf between the inner faces. Check it is level before the glue sets.",
+  "Build the drawer box from the two side walls, rear wall and bottom panel. Keep the bottom square; verify the drawer slides through the opening without binding.",
+  "Attach the drawer face to the front of the box after checking equal left/right clearance. Do not glue the drawer to the cabinet frame.",
+  "Place the top panel across the four legs and rails. Align all outer edges, check for rocking, and hold square until the adhesive sets."
+ ];
+ const jointChecks=[
+  "Measure material thickness at several points; use the measured value in the thickness field.",
+  "Dry-fit every rail-to-leg butt joint and confirm both mating faces touch without overlap.",
+  "Check the four legs are perpendicular and the frame is not twisted before the glue cures.",
+  "Test a small drawer-side/bottom joint using offcuts of the selected material.",
+  "Confirm the drawer face clearance on both sides and above/below before attaching the face.",
+  "Print at 100% / Actual size and verify the calibration line with a ruler."
+ ];
+ const model={W,H,D,t,materialType,miniScale,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks,assemblySteps,jointChecks};
  model.explodedSvg=makeNsExploded(model);
  model.ortho=makeNsOrtho(model);
  return {ok:true,model};
@@ -679,12 +741,18 @@ function makeNsOrtho(m){
 function renderNightstandPdf(model){
  const m=model;
  const byId=id=>document.getElementById(id);
- byId("nsPdfSummary").textContent="Outside size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · material thickness "+nsFmt(m.t)+" mm · support style: four separate corner legs.";
+ const scaleText=m.miniScale?"1:"+m.miniScale:"custom reference";
+ const fullSizeText=m.miniScale?" · full-size reference equivalent "+nsFmt(m.W*m.miniScale)+" W × "+nsFmt(m.H*m.miniScale)+" H × "+nsFmt(m.D*m.miniScale)+" D mm":"";
+ const materialNames={cardboard:"Cardboard",paperboard:"Paperboard",foamboard:"Foam board"};
+ byId("nsPdfSummary").textContent="Outside miniature size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · material: "+(materialNames[m.materialType]||"Cardboard")+" · measured thickness "+nsFmt(m.t)+" mm · scale reference "+scaleText+fullSizeText+". Scale is reference-only; cut dimensions remain the entered miniature dimensions.";
  byId("nsExplodedView").innerHTML=m.explodedSvg;
  byId("nsOrthoViews").innerHTML='<div class="ns-view-card"><h3>Front, side and top</h3>'+m.ortho+'</div><div class="ns-view-card"><h3>Key dimensions</h3><p>Outside width: '+nsFmt(m.W)+' mm</p><p>Outside height: '+nsFmt(m.H)+' mm</p><p>Outside depth: '+nsFmt(m.D)+' mm</p><p>Material: '+nsFmt(m.t)+' mm</p><p>Drawer side clearance: '+nsFmt(m.clearance)+' mm each side</p><p>Calculated drawer box depth: '+nsFmt(m.sideLen)+' mm</p><p>Calculated vertical gap above and below drawer: '+nsFmt(m.gap)+' mm</p></div>';
  byId("nsCutIntro").textContent="Calculated for "+nsFmt(m.W)+" × "+nsFmt(m.H)+" × "+nsFmt(m.D)+" mm outside dimensions using "+nsFmt(m.t)+" mm material. Cut sizes are length × width/height × thickness unless otherwise noted.";
  byId("nsCutList").innerHTML='<table class="ns-cut-table"><thead><tr><th>No.</th><th>Component</th><th>Qty</th><th>Calculated cut size (mm)</th><th>Function</th></tr></thead><tbody>'+m.parts.map(p=>'<tr><td>'+p.id+'</td><td>'+p.name+'</td><td>'+p.qty+'</td><td>'+nsFmt(p.a)+' × '+nsFmt(p.b)+' × '+nsFmt(p.c)+'</td><td>'+p.purpose+'</td></tr>').join("")+'</tbody></table>';
- byId("nsGeometryChecks").innerHTML='<h3>Ideal geometry checks</h3><ul>'+m.checks.map(c=>'<li>'+nsEsc(c[0])+': '+(c[1]?'PASS':'FAIL')+'</li>').join("")+'</ul><p class="ns-note">These checks validate calculated relationships only. They do not certify glue joints, cardboard compression, print scaling or real drawer movement. Make a small physical test before final cutting.</p>';
+ byId("nsGeometryChecks").innerHTML='<h3>Ideal geometry checks</h3><ul>'+m.checks.map(c=>'<li>'+nsEsc(c[0])+': '+(c[1]?'PASS':'FAIL')+'</li>').join("")+'</ul><p class="ns-note">These checks validate calculated relationships only. They do not certify glue joints, material strength, print scaling or real drawer movement. Make a small physical test before final cutting.</p>';
+ byId("nsAssemblySteps").innerHTML=m.assemblySteps.map(step=>'<li>'+nsEsc(step)+'</li>').join("");
+ byId("nsJointChecks").innerHTML=m.jointChecks.map(step=>'<li>'+nsEsc(step)+'</li>').join("");
+ byId("nsJointNote").textContent="Joint model: simple butt/glue joints only. Material selected: "+(materialNames[m.materialType]||"Cardboard")+". No dowels, grooves, rabbets, tabs or fastener allowances are included. Material selection is descriptive and does not certify joint strength; test a physical prototype before treating this as construction-ready.";
 }
 
 </script>
