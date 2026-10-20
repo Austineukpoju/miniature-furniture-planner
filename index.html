@@ -73,47 +73,183 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 </main>
 <footer>Miniature Furniture Planner · Early prototype · No account or payment needed to test this version.</footer>
 <script>
-const $=id=>document.getElementById(id);
-const fmt=n=>Number(n.toFixed(2)).toString();
-let currentPlan=null;
-function rectSvg(w,h,label){const safeW=Math.max(w,1),safeH=Math.max(h,1),pad=8,viewW=safeW+pad*2,viewH=safeH+pad*2;return '<svg xmlns="http://www.w3.org/2000/svg" width="'+viewW+'mm" height="'+viewH+'mm" viewBox="0 0 '+viewW+' '+viewH+'" role="img" aria-label="'+label+' cutting pattern, '+fmt(safeW)+' by '+fmt(safeH)+' millimetres"><rect x="'+pad+'" y="'+pad+'" width="'+safeW+'" height="'+safeH+'" fill="#fff" stroke="#111" stroke-width=".45"/><g stroke="#111" fill="none" stroke-width=".25"><path d="M'+pad+' 3 V6 M'+(pad+safeW)+' 3 V6 M'+pad+' 4.5 H'+(pad+safeW)+' M3 '+pad+' H6 M3 '+(pad+safeH)+' H6 M4.5 '+pad+' V'+(pad+safeH)+'"/></g><g fill="#111" font-size="3" font-family="Arial,sans-serif"><text x="'+(pad+safeW/2)+'" y="3.2" text-anchor="middle">'+fmt(safeW)+' mm</text><text x="2.5" y="'+(pad+safeH/2)+'" text-anchor="middle" transform="rotate(-90 2.5 '+(pad+safeH/2)+')">'+fmt(safeH)+' mm</text></g></svg>'}
-function render(){
-const W=Number($('width').value),H=Number($('height').value),D=Number($('depth').value),t=Number($('thickness').value);
-const err=$('error');err.textContent='';
-if(![W,H,D,t].every(Number.isFinite)||W<=0||H<=0||D<=0||t<=0){err.textContent='Enter positive numbers for all four measurements.';return}
-if(W>500||H>500||D>500||W<10||H<10||D<5||t>10||t<.2){err.textContent='For this prototype, use width and height 10–500 mm, depth 5–500 mm, and thickness 0.2–10 mm.';return}
-if(W<=2*t||D<=t){err.textContent='These measurements are too small for this thickness. Width must be greater than twice the thickness, and depth must be greater than the thickness.';return}
-const sideD=D-t,insideW=W-2*t;
-const parts=[
-{name:'Side panels',qty:2,w:sideD,h:H,purpose:'Left and right walls'},
-{name:'Top panel',qty:1,w:sideD,h:insideW,purpose:'Top, fitted between the side walls'},
-{name:'Bottom panel',qty:1,w:sideD,h:insideW,purpose:'Bottom, fitted between the side walls'},
-{name:'Back panel',qty:1,w:W,h:H,purpose:'Rear panel, attached to the back edges'}
-];
-// For top/bottom, show dimensions as width × depth in the table, even though SVG orientation can rotate.
-parts[1].w=insideW;parts[1].h=sideD;parts[2].w=insideW;parts[2].h=sideD;
-$('sizeLabel').textContent=fmt(W)+' × '+fmt(H)+' × '+fmt(D);
-$('pieceCount').textContent='5 panels';
-$('materialLabel').textContent=fmt(t)+' mm';
-$('designNote').textContent='Open-front cabinet. Side panels are shortened by the back thickness; top and bottom fit between the side panels. The back panel is attached to the rear edges.';
-$('cutRows').innerHTML=parts.map(p=>'<tr><td>'+p.name+'</td><td>'+p.qty+'</td><td>'+fmt(p.w)+' × '+fmt(p.h)+'</td><td>'+p.purpose+'</td></tr>').join('');
-$('pieceList').innerHTML=parts.map((p,i)=>'<article class="piece"><h3>'+p.name+'</h3><div class="qty">Cut '+p.qty+' · rectangle</div><div class="dims">'+fmt(p.w)+' × '+fmt(p.h)+' mm</div>'+rectSvg(p.w,p.h,p.name)+'</article>').join('');
-const steps=[
-'Mark and label every rectangle from the cutting list. Keep the grain or corrugation direction consistent where possible.',
-'Cut the two side panels carefully. Put the pieces together and check that they match.',
-'Place the top panel between the two side panels at the top. Dry-fit first, then apply a thin line of glue to the joining edges.',
-'Repeat with the bottom panel, keeping it level and making the front edges line up. Use a small square or folded paper corner to check the cabinet is not twisted.',
-'Place the back panel against the rear edges. Check the cabinet is square, then glue the back in place to help hold the shape.',
-'Leave the cabinet supported on a flat surface until the glue has fully dried. Re-measure the outside width, height and depth.',
-'Optional: cover exposed edges with thin paper strips, let them dry, then paint or decorate. Add a door, drawer or shelf only after this basic body fits correctly.'
-];
-$('stepsList').innerHTML=steps.map((s,i)=>'<li><span class="stepnum">Step '+(i+1)+':</span> '+s+'</li>').join('');
-const maxPrintW=164,maxPrintH=244;const tooLarge=parts.filter(p=>p.w>maxPrintW||p.h>maxPrintH);let printWarn=document.getElementById('printWarning');if(!printWarn){printWarn=document.createElement('p');printWarn.id='printWarning';printWarn.className='notice';$('patterns').insertBefore(printWarn,$('pieceList'));}if(tooLarge.length){printWarn.hidden=false;printWarn.innerHTML='<strong>Paper-size warning:</strong> '+tooLarge.map(p=>p.name).join(', ')+' exceed the approximate safe A4 pattern area at 100% scale. Do not use “Fit to page” to force them smaller; use larger paper or split the pattern and verify the joined dimensions.';}else{printWarn.hidden=true;printWarn.textContent='';}currentPlan={W,H,D,t,parts,steps};
+/*
+  MINIATURE FURNITURE GENERATOR — FOUNDATION ENGINE
+  Design: open-front rectangular cabinet with two side panels, top, bottom, and rear panel.
+  Joint assumptions:
+  - Top and bottom fit between the side panels.
+  - Back panel is glued to the rear edges and adds its thickness to total depth.
+  - No blade kerf, glue gap, compression, or material irregularity is included in ideal dimensions.
+*/
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n.toFixed(2)).toString();
+let currentPlan = null;
+
+function validateCabinetInput(input) {
+  const { W, H, D, t } = input;
+  if (![W, H, D, t].every(Number.isFinite)) return "Enter a number for all four measurements.";
+  if (![W, H, D, t].every(v => v > 0)) return "All four measurements must be greater than zero.";
+  if (W < 10 || W > 500 || H < 10 || H > 500 || D < 5 || D > 500 || t < 0.2 || t > 10) {
+    return "For this prototype, use width and height 10–500 mm, depth 5–500 mm, and thickness 0.2–10 mm.";
+  }
+  if (W <= 2 * t) return "The width must be greater than twice the material thickness so the top and bottom have a positive cut width.";
+  if (D <= t) return "The depth must be greater than the material thickness so the cabinet body has a positive depth.";
+  if (H <= 0) return "The height must be greater than zero.";
+  return "";
 }
-$('generate').addEventListener('click',render);
-['width','height','depth','thickness'].forEach(id=>$(id).addEventListener('change',render));
-$('print').addEventListener('click',()=>{render();if(!$('error').textContent)window.print()});
-$('download').addEventListener('click',()=>{render();if($('error').textContent)return;const p=currentPlan;const lines=['MINIATURE FURNITURE PLANNER — BEDSIDE CABINET','Prototype plan — physically test before final cutting','Outside size: '+fmt(p.W)+' W × '+fmt(p.H)+' H × '+fmt(p.D)+' D mm','Material thickness: '+fmt(p.t)+' mm','','CUT LIST','Part | Qty | Size (mm)'];p.parts.forEach(x=>lines.push(x.name+' | '+x.qty+' | '+fmt(x.w)+' × '+fmt(x.h)));lines.push('','ASSEMBLY STEPS');p.steps.forEach((s,i)=>lines.push((i+1)+'. '+s));lines.push('','Safety: use a ruler, cut away from fingers, and ask for help if needed.','Print at 100% / Actual size if printing patterns.');const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='miniature-bedside-cabinet-plan.txt';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)});
+
+/*
+  Pure geometry function: given inputs, return the complete idealized design model.
+  Keep calculations here rather than duplicating formulas in the display code.
+*/
+function generateCabinetDesign(input) {
+  const error = validateCabinetInput(input);
+  if (error) return { ok: false, error };
+
+  const { W, H, D, t } = input;
+  const bodyDepth = D - t;
+  const openingWidth = W - 2 * t;
+
+  const parts = [
+    { id: "A", name: "Side panels", qty: 2, width: bodyDepth, height: H, purpose: "Left and right walls", instruction: "Cut two matching side panels labelled A." },
+    { id: "B", name: "Top panel", qty: 1, width: openingWidth, height: bodyDepth, purpose: "Top, fitted between the side panels", instruction: "Cut one top panel labelled B. It fits between the two side panels." },
+    { id: "C", name: "Bottom panel", qty: 1, width: openingWidth, height: bodyDepth, purpose: "Bottom, fitted between the side panels", instruction: "Cut one bottom panel labelled C. It fits between the two side panels." },
+    { id: "D", name: "Back panel", qty: 1, width: W, height: H, purpose: "Rear panel, attached over the rear edges", instruction: "Cut one back panel labelled D. It covers the rear of the cabinet." }
+  ];
+
+  const checks = {
+    outsideWidth: 2 * t + openingWidth,
+    outsideHeight: H,
+    outsideDepth: bodyDepth + t,
+    widthMatches: Math.abs((2 * t + openingWidth) - W) < 0.000001,
+    heightMatches: Math.abs(H - H) < 0.000001,
+    depthMatches: Math.abs((bodyDepth + t) - D) < 0.000001,
+    allCutDimensionsPositive: parts.every(p => p.width > 0 && p.height > 0)
+  };
+  const geometryValid = checks.widthMatches && checks.heightMatches && checks.depthMatches && checks.allCutDimensionsPositive;
+  if (!geometryValid) return { ok: false, error: "The design failed an internal geometry check. Please adjust the dimensions." };
+
+  const steps = [
+    { title: "Mark the pieces", partIds: ["A", "B", "C", "D"], text: "Use a ruler to mark each rectangle from the cutting list. Write its letter on the waste area so you can identify it." },
+    { title: "Cut the side panels", partIds: ["A"], text: "Cut two matching A panels. Place them together to check that their edges and sizes match." },
+    { title: "Fit the top", partIds: ["A", "B"], text: "Dry-fit panel B between the two A side panels at the top. The front edges should line up." },
+    { title: "Fit the bottom", partIds: ["A", "C"], text: "Dry-fit panel C between the side panels at the bottom. Check that both sides are straight and the body is not twisted." },
+    { title: "Attach the back", partIds: ["D"], text: "Place panel D over the rear edges. Check the cabinet is square, then glue the back in place." },
+    { title: "Check the finished size", partIds: ["A", "B", "C", "D"], text: "Let the glue dry fully. Measure the outside width, height and depth and compare them with your chosen dimensions." }
+  ];
+
+  return {
+    ok: true,
+    designId: "open-front-cabinet-v1",
+    designName: "Open-front miniature cabinet",
+    input: { W, H, D, t },
+    targetOutside: { width: W, height: H, depth: D },
+    assumptions: [
+      "Top and bottom fit between the two side panels.",
+      "The back panel is attached across the rear edges and adds its thickness to the depth.",
+      "Ideal calculations do not compensate for blade kerf, glue gaps, cardboard compression, or uneven material."
+    ],
+    parts,
+    steps,
+    checks,
+    individualPieceCount: parts.reduce((sum, p) => sum + p.qty, 0)
+  };
+}
+
+/* Fast regression checks for the geometry engine. These are mathematical checks, not physical tests. */
+function runGeometrySelfTests() {
+  const cases = [
+    { input: { W: 40, H: 50, D: 30, t: 1 }, expected: [[29,50,2],[38,29,1],[38,29,1],[40,50,1]] },
+    { input: { W: 36, H: 45, D: 27, t: 1 }, expected: [[26,45,2],[34,26,1],[34,26,1],[36,45,1]] },
+    { input: { W: 80, H: 100, D: 60, t: 2 }, expected: [[58,100,2],[76,58,1],[76,58,1],[80,100,1]] },
+    { input: { W: 20, H: 25, D: 12, t: 0.5 }, expected: [[11.5,25,2],[19,11.5,1],[19,11.5,1],[20,25,1]] }
+  ];
+  for (const test of cases) {
+    const result = generateCabinetDesign(test.input);
+    if (!result.ok) return { ok: false, message: result.error };
+    for (let i = 0; i < test.expected.length; i++) {
+      const [w, h, qty] = test.expected[i], part = result.parts[i];
+      if (Math.abs(part.width - w) > 0.000001 || Math.abs(part.height - h) > 0.000001 || part.qty !== qty) {
+        return { ok: false, message: "A geometry regression test did not match the expected cut list." };
+      }
+    }
+    if (!result.checks.widthMatches || !result.checks.heightMatches || !result.checks.depthMatches) {
+      return { ok: false, message: "A geometry invariant test failed." };
+    }
+  }
+  const invalid = generateCabinetDesign({ W: 2, H: 10, D: 10, t: 1 });
+  if (invalid.ok) return { ok: false, message: "The engine accepted a width too small for the material thickness." };
+  return { ok: true, message: "Geometry self-checks passed (4 valid designs and 1 invalid-input test). Physical fit and print scale still require real-world testing." };
+}
+
+function rectSvg(w, h, label) {
+  const safeW = Math.max(w, 1), safeH = Math.max(h, 1), pad = 8;
+  const viewW = safeW + pad * 2, viewH = safeH + pad * 2;
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + viewW + 'mm" height="' + viewH + 'mm" viewBox="0 0 ' + viewW + ' ' + viewH + '" role="img" aria-label="' + label + ' cutting pattern, ' + fmt(safeW) + ' by ' + fmt(safeH) + ' millimetres"><rect x="' + pad + '" y="' + pad + '" width="' + safeW + '" height="' + safeH + '" fill="#fff" stroke="#111" stroke-width=".45"/><g stroke="#111" fill="none" stroke-width=".25"><path d="M' + pad + ' 3 V6 M' + (pad + safeW) + ' 3 V6 M' + pad + ' 4.5 H' + (pad + safeW) + ' M3 ' + pad + ' H6 M3 ' + (pad + safeH) + ' H6 M4.5 ' + pad + ' V' + (pad + safeH) + '"/></g><g fill="#111" font-size="3" font-family="Arial,sans-serif"><text x="' + (pad + safeW / 2) + '" y="3.2" text-anchor="middle">' + fmt(safeW) + ' mm</text><text x="2.5" y="' + (pad + safeH / 2) + '" text-anchor="middle" transform="rotate(-90 2.5 ' + (pad + safeH / 2) + ')">' + fmt(safeH) + ' mm</text></g></svg>';
+}
+
+function render() {
+  const input = { W: Number($("width").value), H: Number($("height").value), D: Number($("depth").value), t: Number($("thickness").value) };
+  const result = generateCabinetDesign(input);
+  const err = $("error");
+  err.textContent = "";
+  if (!result.ok) { err.textContent = result.error; currentPlan = null; return; }
+  const { W, H, D, t } = result.input;
+  const parts = result.parts;
+  $("sizeLabel").textContent = fmt(W) + " × " + fmt(H) + " × " + fmt(D);
+  $("pieceCount").textContent = result.individualPieceCount + " panels";
+  $("materialLabel").textContent = fmt(t) + " mm";
+  $("designNote").textContent = result.designName + ". The dimensions below are ideal cut sizes for the stated joint arrangement; physical material and cutting tolerances may affect the final fit.";
+  $("cutRows").innerHTML = parts.map(p => "<tr><td>" + p.id + " — " + p.name + "</td><td>" + p.qty + "</td><td>" + fmt(p.width) + " × " + fmt(p.height) + "</td><td>" + p.purpose + "</td></tr>").join("");
+  $("pieceList").innerHTML = parts.map(p => '<article class="piece"><h3>' + p.id + " — " + p.name + '</h3><div class="qty">Cut ' + p.qty + ' · rectangle</div><div class="dims">' + fmt(p.width) + " × " + fmt(p.height) + " mm</div>" + rectSvg(p.width, p.height, p.id + " " + p.name) + "</article>").join("");
+  $("stepsList").innerHTML = result.steps.map((s, i) => "<li><span class=\"stepnum\">Step " + (i + 1) + " — " + s.title + ":</span> " + s.text + "</li>").join("");
+
+  const maxPrintW = 148, maxPrintH = 228;
+  const tooLarge = parts.filter(p => p.width + 16 > maxPrintW || p.height + 16 > maxPrintH);
+  let printWarn = document.getElementById("printWarning");
+  if (!printWarn) {
+    printWarn = document.createElement("p"); printWarn.id = "printWarning"; printWarn.className = "notice";
+    $("patterns").insertBefore(printWarn, $("pieceList"));
+  }
+  if (tooLarge.length) {
+    printWarn.hidden = false;
+    printWarn.textContent = "Paper-size warning: " + tooLarge.map(p => p.id + " — " + p.name).join(", ") + " may not fit the approximate safe A4 portrait area at 100% scale once labels are included. Use larger paper or a carefully verified tiled pattern; do not shrink with “Fit to page”.";
+  } else { printWarn.hidden = true; printWarn.textContent = ""; }
+
+  currentPlan = result;
+}
+
+$("generate").addEventListener("click", render);
+["width", "height", "depth", "thickness"].forEach(id => $(id).addEventListener("change", render));
+$("print").addEventListener("click", () => { render(); if (!$("error").textContent && currentPlan) window.print(); });
+$("download").addEventListener("click", () => {
+  render();
+  if ($("error").textContent || !currentPlan) return;
+  const p = currentPlan;
+  const lines = [
+    "MINIATURE FURNITURE GENERATOR — FOUNDATION PLAN",
+    "Design: " + p.designName,
+    "Prototype — verify print scale and physical fit before final cutting.",
+    "Outside size: " + fmt(p.input.W) + " W × " + fmt(p.input.H) + " H × " + fmt(p.input.D) + " D mm",
+    "Material thickness: " + fmt(p.input.t) + " mm", "", "CUT LIST", "ID | Part | Qty | Size (mm)"
+  ];
+  p.parts.forEach(x => lines.push(x.id + " | " + x.name + " | " + x.qty + " | " + fmt(x.width) + " × " + fmt(x.height)));
+  lines.push("", "ASSEMBLY STEPS");
+  p.steps.forEach((s, i) => lines.push((i + 1) + ". " + s.title + " — " + s.text));
+  lines.push("", "DESIGN ASSUMPTIONS");
+  p.assumptions.forEach(a => lines.push("- " + a));
+  lines.push("", "Safety: cut away from fingers and use suitable tools. Print patterns at 100% / Actual size.");
+  const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = "miniature-furniture-foundation-plan.txt";
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+const selfTestResult = runGeometrySelfTests();
+if (!selfTestResult.ok) {
+  $("error").textContent = "Internal generator check failed: " + selfTestResult.message;
+  console.error(selfTestResult.message);
+}
 render();
 </script>
 </body>
