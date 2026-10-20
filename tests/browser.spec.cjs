@@ -129,13 +129,15 @@ test("nightstand shows assembled and exploded views tied to dimensions and mater
   await page.locator("#depth").fill("30");
   await page.locator("#thickness").fill("2");
   await page.locator("#generateNightstand").click();
-  await expect(page.locator("#nightstandPreview .nightstand-view-card")).toHaveCount(3);
+  await expect(page.locator("#nightstandPreview .nightstand-view-card")).toHaveCount(4);
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-width", "40");
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-height", "50");
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-depth", "30");
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-material-thickness", "2");
   await expect(page.locator("#nightstandStatus")).toContainText("Material thickness 2 mm");
   await expect(page.locator("#nightstandPreview")).toContainText("Drawer dimensions and placement");
+  await expect(page.locator("#nightstandPreview")).toContainText("Front, side and top dimensions");
+  await expect(page.locator("#nightstandPreview svg[aria-label^="+"'Dimensioned front side and top views'"+"]")).toBeVisible();
   await expect(page.locator("#nightstandPreview")).toContainText("Clearance at each side");
   await expect(page.locator("#nightstandPreview")).toContainText("Gap above shelf");
   await expect(page.locator("#nightstandPreview")).toContainText("Gap below upper rail");
