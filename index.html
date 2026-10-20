@@ -427,16 +427,18 @@ function renderCabinetPreview(plan) {
 }
 function renderPartViews(plan){
  const host=$("partViews");if(!host||!plan||!plan.ok)return;
- const t=plan.input.t, parts=[
-  {id:"A",name:"Side panel",qty:2,w:plan.input.D-t,h:plan.input.H,color:"#a56f46",note:"Cut two identical sides."},
-  {id:"B",name:"Top panel",qty:1,w:plan.input.W-2*t,h:plan.input.D-t,color:"#d6ad83",note:"Fits between the side panels."},
-  {id:"C",name:"Bottom panel",qty:1,w:plan.input.W-2*t,h:plan.input.D-t,color:"#c08d60",note:"Fits between the side panels."},
-  {id:"D",name:"Back panel",qty:1,w:plan.input.W,h:plan.input.H,color:"#c59a70",note:"Covers the rear edges and adds t to total depth."}
- ];
- host.innerHTML=parts.map(p=>{
-  const sc=Math.min(210/p.w,108/p.h,3),rw=p.w*sc,rh=p.h*sc,x=(260-rw)/2,y=25;
-  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 160" role="img" aria-label="Part '+p.id+', '+p.name+', '+fmt(p.w)+' by '+fmt(p.h)+' millimetres"><text x="130" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="#5c3b27">PART '+p.id+'</text><rect x="'+x.toFixed(2)+'" y="'+y+'" width="'+rw.toFixed(2)+'" height="'+rh.toFixed(2)+'" fill="'+p.color+'" stroke="#5c3b27" stroke-width="1.5"/><text x="130" y="'+Math.min(145,y+rh+14)+'" text-anchor="middle" font-size="10" fill="#5c3b27">'+fmt(p.w)+' × '+fmt(p.h)+' mm</text><text x="130" y="157" text-anchor="middle" font-size="9" fill="#79543a">CUT '+p.qty+'</text></svg>';
-  return '<article class="part-view-card"><div class="part-view-graphic">'+svg+'</div><div class="part-view-copy"><h3>Part '+p.id+' — '+p.name+'</h3><p><strong>Cut '+p.qty+'</strong> · '+fmt(p.w)+' × '+fmt(p.h)+' mm</p><p>'+p.note+'</p><p class="muted">Illustration only; use the stated dimensions for accurate cutting.</p></div></article>';
+ const colors={A:"#a56f46",B:"#d6ad83",C:"#c08d60",D:"#c59a70"};
+ const notes={
+  A:"Cut two identical side panels. These form the left and right walls.",
+  B:"Cut one top panel. It fits between the two side panels.",
+  C:"Cut one bottom panel. It fits between the two side panels.",
+  D:"Cut one back panel. It covers the rear edges and adds the material thickness to total depth."
+ };
+ // Read the engine's canonical parts list: do not recalculate dimensions here.
+ host.innerHTML=plan.parts.map(p=>{
+  const w=p.width,h=p.height,sc=Math.min(210/w,108/h,3),rw=w*sc,rh=h*sc,x=(260-rw)/2,y=25;
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 160" role="img" aria-label="Part '+p.id+', '+p.name+', '+fmt(w)+' by '+fmt(h)+' millimetres"><text x="130" y="15" text-anchor="middle" font-size="11" font-weight="700" fill="#5c3b27">PART '+p.id+'</text><rect x="'+x.toFixed(2)+'" y="'+y+'" width="'+rw.toFixed(2)+'" height="'+rh.toFixed(2)+'" fill="'+(colors[p.id]||"#c59a70")+'" stroke="#5c3b27" stroke-width="1.5"/><text x="130" y="'+Math.min(145,y+rh+14)+'" text-anchor="middle" font-size="10" fill="#5c3b27">'+fmt(w)+' × '+fmt(h)+' mm</text><text x="130" y="157" text-anchor="middle" font-size="9" fill="#79543a">CUT '+p.qty+'</text></svg>';
+  return '<article class="part-view-card"><div class="part-view-graphic">'+svg+'</div><div class="part-view-copy"><h3>Part '+p.id+' — '+p.name+'</h3><p><strong>Cut '+p.qty+'</strong> · '+fmt(w)+' × '+fmt(h)+' mm</p><p>'+(notes[p.id]||p.purpose)+'</p><p class="muted">Illustration only; use the stated dimensions for accurate cutting.</p></div></article>';
  }).join("");
 }
 
