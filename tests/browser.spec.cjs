@@ -135,6 +135,12 @@ test("nightstand shows assembled and exploded views tied to dimensions and mater
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-depth", "30");
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-material-thickness", "2");
   await expect(page.locator("#nightstandStatus")).toContainText("Material thickness 2 mm");
+  await expect(page.locator("#nightstandPreview")).toContainText("Drawer dimensions and placement");
+  await expect(page.locator("#nightstandPreview")).toContainText("Clearance at each side");
+  await expect(page.locator("#nightstandPreview")).toContainText("Gap above shelf");
+  await expect(page.locator("#nightstandPreview")).toContainText("Gap below upper rail");
+  await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toContainText("Drawer width");
+  await expect(page.locator("#nightstandPreview svg [data-part^='drawer-front']").first()).toBeVisible();
   const first = await page.locator("#nightstandParts").innerText();
   await page.locator("#thickness").fill("1");
   await page.locator("#generateNightstand").click();
