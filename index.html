@@ -577,7 +577,7 @@ function renderNightstandConcept(){
  svg+=slab(W-t,leg,zRail,t,D-2*leg,railH,"#8f5c38","#b78358","#75482d");
  const drawerZ=shelfZ+t+Math.max(t,(H-t-railH-(shelfZ+t)-drawerH)/2);
  svg+=slab(leg+ r.clearance,0,drawerZ,drawerW,t,drawerH,"#c08d60","#d7b18c","#8f5c38");
- svg+=slab(leg+ r.clearance+t,t,drawerZ,drawerBoxInnerW,drawerBoxDepth,drawerH-t,"#a56f46","#c08d60","#75482d");
+ svg+=slab(leg+ r.clearance+2*t,t,drawerZ,drawerBoxInnerW,drawerBoxDepth,drawerH-t,"#a56f46","#c08d60","#75482d");
  svg+=slab(0,0,H-t,W,D,t,"#c59a70","#e4c29f","#9b6843");
  svg+='<text x="180" y="258" text-anchor="middle" font-size="10" fill="#5c3b27">'+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm</text></svg>';
  preview.innerHTML=svg;
