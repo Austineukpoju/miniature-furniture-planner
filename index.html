@@ -141,28 +141,28 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
   <div class="ns-view-card">
    <h3>Drawing conventions and limitations</h3>
    <p>Use the dimensioned orthographic views and calculated component schedule for measurements. The exploded view is for component identification and assembly order, not a scale cutting template.</p>
-   <p>All dimensions are in millimetres. Material thickness is included in the component calculations. Check the printed 100 mm calibration line before using any printable patterns, and test one sample joint in the intended cardboard before final assembly.</p>
+   <p>All dimensions are in millimetres (mm). In each cut-list row, the three numbers mean length × width/height × material thickness; read the part name and function before cutting. Material thickness is included where a panel meets another panel. Check the printed 100 mm calibration line before using any printable patterns, and test one sample joint in the intended material before final assembly.</p>
   </div>
   <p class="ns-note">This is a dimension-driven engineering drawing set, not a photorealistic or finished-furniture illustration. Mathematical checks do not replace a physical fit test.</p>
  </article>
  <article class="ns-pdf-page">
   <p class="ns-kicker">Construction layout</p>
   <h2>Exploded view — numbered components</h2>
-  <p>Components are separated for identification. The part numbers match the cut list on the following page.</p>
+  <p>Components are separated to make their positions easier to understand. Find a number in this exploded view, then locate the same number in the cut list. “×4” means cut four identical pieces. This view explains which pieces belong together; it is not itself a scale cutting template.</p>
   <div id="nsExplodedView"></div>
  </article>
  <article class="ns-pdf-page">
   <p class="ns-kicker">Orthographic drawings</p>
   <h2>Front, side and top views</h2>
-  <p>Overall dimensions are shown in millimetres. Component sizes are calculated from the same model as the cut list.</p>
+  <p>Overall dimensions are shown in millimetres. Front = view from the drawer; side = view from the left or right; top = view looking down. The same calculated model supplies both these views and the cut list, so use the table for exact cut sizes.</p>
   <div id="nsOrthoViews" class="ns-views"></div>
   <div class="ns-view-card">
    <h3>Connection and joint schedule</h3>
    <table class="ns-cut-table"><thead><tr><th>Connection</th><th>Engineering assumption</th><th>Verification required</th></tr></thead><tbody>
-    <tr><td>Top to four legs</td><td>Top panel rests on the leg ends; simple butt/glue joint. Top is full outside width × depth.</td><td>Confirm each leg is square, flush and positioned at the corners.</td></tr>
-    <tr><td>Rails to legs</td><td>Front, rear and side rails span between leg inner faces.</td><td>Check the rail ends meet the legs without overlap or gaps.</td></tr>
-    <tr><td>Lower shelf to frame</td><td>Shelf is sized to fit between the four legs.</td><td>Confirm the chosen support method and shelf height before gluing.</td></tr>
-    <tr><td>Drawer box</td><td>Side walls, rear wall and bottom are separate calculated panels.</td><td>Dry-fit the box; slide hardware and running friction are not validated.</td></tr>
+    <tr><td>Top panel to legs</td><td>The top panel spans the outside footprint and rests on the four leg ends. It is not cut to fit between the legs.</td><td>Dry-place the top; make sure all four legs touch its underside and the top does not rock. Glue only after alignment.</td></tr>
+    <tr><td>Rails to legs</td><td>Each rail fits between the inside faces of its two legs. The front/rear rails use the inside width; side rails use the inside depth.</td><td>Mark the rail height consistently. Dry-fit both ends, keep the rail faces flush, and check the frame is square before glue sets.</td></tr>
+    <tr><td>Lower shelf to frame</td><td>The shelf panel is calculated to fit inside the four-leg footprint. Its height is a layout position, not a built-in ledge or bracket.</td><td>Choose how the shelf will actually be supported (for example, small glue blocks or glued edge contact). That support detail is not drawn or included in the cut list.</td></tr>
+    <tr><td>Drawer box</td><td>The two sides, rear wall and bottom form a simple glued box; the front face is attached after the box is square.</td><td>Dry-fit the box and test it inside the opening. No runners, handle, stop, or operating clearance test is included; hand-cut material may bind.</td></tr>
    </tbody></table>
    <p id="nsJointNote" class="ns-note">Joint model: simple butt/glue joints only. No dowels, grooves, rabbets, tabs or fastener allowances are included. A physical prototype is required before treating this as construction-ready.</p>
   </div>
@@ -181,6 +181,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
   <p class="ns-kicker">Calculated component schedule</p>
   <h2>Nightstand cut list and design checks</h2>
   <p id="nsCutIntro"></p>
+  <div class="ns-view-card" id="nsDimensionGuide"></div>
   <div id="nsCutList"></div>
   <div id="nsGeometryChecks"></div>
  </article>
@@ -671,21 +672,21 @@ function generateNightstandBlueprint(input){
   {id:"10",name:"Drawer bottom",qty:1,a:backW,b:bottomD,c:t,purpose:"Bottom panel fits inside drawer box"}
  ];
  const assemblySteps=[
-  "Dry-lay all four corner legs and label the front, rear, left and right positions. Confirm the leg lengths are H minus top thickness.",
-  "Glue the front and rear rails between the corresponding leg inner faces. Keep the top ends flush and check the frame is square.",
-  "Fit the two side rails between the side leg pairs. Dry-fit first; do not force bowed or oversized pieces into place.",
-  "Mark the shelf height on all four legs, then fit the lower shelf between the inner faces. Check it is level before the glue sets.",
-  "Build the drawer box from the two side walls, rear wall and bottom panel. Keep the bottom square; verify the drawer slides through the opening without binding.",
-  "Attach the drawer face to the front of the box after checking equal left/right clearance. Do not glue the drawer to the cabinet frame.",
-  "Place the top panel across the four legs and rails. Align all outer edges, check for rocking, and hold square until the adhesive sets."
+  "Lay the four legs on a flat surface and label FRONT-LEFT, FRONT-RIGHT, REAR-LEFT and REAR-RIGHT. Each leg length is total height H minus top thickness t, because the top sits above the legs. Check all four lengths match before assembly.",
+  "Dry-fit the front and rear rails between the front leg pair and rear leg pair. Their length is the inside width (outside width W minus two leg widths). Align the rail tops to the same mark on every leg, then glue and check the frame is square.",
+  "Fit one side rail between the left legs and the other between the right legs. Each spans the inside depth (outside depth D minus two leg depths). Dry-fit both ends; if a rail is too long or bowed, trim or remake it rather than forcing the frame out of square.",
+  "Mark the same shelf-height line on all four legs. Place the shelf within the leg footprint and check it is level from front to back and side to side. The drawing calculates the shelf panel but does not specify brackets or support blocks, so decide and test the support method before gluing.",
+  "Assemble the two drawer sides, rear wall and bottom as a small box. Keep the side walls parallel and the rear wall at 90° to them. Let the box dry square, then test it in the opening. If it catches, identify the rubbing edge and adjust carefully; the plan does not include runners or guarantee smooth sliding.",
+  "Centre the drawer face on the box front. Check the left and right gaps are equal and that there is visible clearance above and below. Glue the face to the drawer box only—never glue the moving drawer to the cabinet frame.",
+  "Place the full-size top panel over the four leg ends. Align its outside edges with the intended cabinet footprint, check that all legs contact it and it does not rock, then glue. Hold the frame square until the adhesive sets."
  ];
  const jointChecks=[
-  "Measure material thickness at several points; use the measured value in the thickness field.",
-  "Dry-fit every rail-to-leg butt joint and confirm both mating faces touch without overlap.",
-  "Check the four legs are perpendicular and the frame is not twisted before the glue cures.",
-  "Test a small drawer-side/bottom joint using offcuts of the selected material.",
-  "Confirm the drawer face clearance on both sides and above/below before attaching the face.",
-  "Print at 100% / Actual size and verify the calibration line with a ruler."
+  "Measure the actual material thickness at several points with a ruler or calliper; enter a representative value. If thickness varies noticeably, expect joints and drawer gaps to vary too.",
+  "Dry-fit each rail between its legs. The cut ends should meet the leg faces flat, with no overlap and no large gap. These are simple butt joints, not slots or interlocking joints.",
+  "Use a small square or a paper right-angle guide to check each leg/rail corner. Measure diagonals between opposite corners if possible; equal diagonals are a useful sign that the frame is square.",
+  "Use leftover scraps of the selected material to test glue, drying time and edge strength. A joint that tears the surface or peels apart needs a different glue/application or a redesigned connection.",
+  "Place the drawer in the opening without glue on the face. Check left/right and top/bottom gaps, and move it in and out by hand. The calculated clearance is a target, not a guarantee after hand cutting.",
+  "In the print dialog choose 100% or Actual size; turn off Fit to page. Measure the printed 100 mm calibration line. If it is not exactly 100 mm, do not use the printed page as a cutting template."
  ];
  const model={W,H,D,t,materialType,miniScale,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks,assemblySteps,jointChecks};
  model.explodedSvg=makeNsExploded(model);
@@ -749,6 +750,7 @@ function renderNightstandPdf(model){
  byId("nsExplodedView").innerHTML=m.explodedSvg;
  byId("nsOrthoViews").innerHTML='<div class="ns-view-card"><h3>Front, side and top</h3>'+m.ortho+'</div><div class="ns-view-card"><h3>Key dimensions</h3><p>Outside width: '+nsFmt(m.W)+' mm</p><p>Outside height: '+nsFmt(m.H)+' mm</p><p>Outside depth: '+nsFmt(m.D)+' mm</p><p>Material: '+nsFmt(m.t)+' mm</p><p>Drawer side clearance: '+nsFmt(m.clearance)+' mm each side</p><p>Calculated drawer box depth: '+nsFmt(m.sideLen)+' mm</p><p>Calculated vertical gap above and below drawer: '+nsFmt(m.gap)+' mm</p></div>';
  byId("nsCutIntro").textContent="Calculated for "+nsFmt(m.W)+" × "+nsFmt(m.H)+" × "+nsFmt(m.D)+" mm outside dimensions using "+nsFmt(m.t)+" mm material. Cut sizes are length × width/height × thickness unless otherwise noted.";
+ byId("nsDimensionGuide").innerHTML='<h3>How to read the measurements</h3><p><strong>Outside size:</strong> W = overall left-to-right width, H = floor-to-top height, D = front-to-back depth. All are the finished miniature target in millimetres.</p><p><strong>Thickness (t):</strong> the thickness of one sheet or board. The calculations assume the same thickness throughout. Measure the material itself; the material dropdown is a label only and does not estimate strength.</p><p><strong>Why some pieces are smaller than the outside size:</strong> each leg occupies a corner. The inside width is W − 2 × leg width; the inside depth is D − 2 × leg depth. Rails and shelf are calculated to fit inside those faces. Leg length is H − t because the top panel adds the remaining thickness to total height. Drawer dimensions use the calculated opening and clearance.</p><p><strong>Cut-size order:</strong> each row lists length × width/height × thickness in mm. Qty tells you how many identical pieces to cut. Measure and label each piece before assembly.</p><p><strong>Important limitation:</strong> these are ideal mathematical dimensions. They do not automatically subtract knife width, account for crushed/uneven board, or add real hardware. Test-fit offcuts and a paper pattern before cutting the final material.</p>';
  byId("nsCutList").innerHTML='<table class="ns-cut-table"><thead><tr><th>No.</th><th>Component</th><th>Qty</th><th>Calculated cut size (mm)</th><th>Function</th></tr></thead><tbody>'+m.parts.map(p=>'<tr><td>'+p.id+'</td><td>'+p.name+'</td><td>'+p.qty+'</td><td>'+nsFmt(p.a)+' × '+nsFmt(p.b)+' × '+nsFmt(p.c)+'</td><td>'+p.purpose+'</td></tr>').join("")+'</tbody></table>';
  byId("nsGeometryChecks").innerHTML='<h3>Ideal geometry checks</h3><ul>'+m.checks.map(c=>'<li>'+nsEsc(c[0])+': '+(c[1]?'PASS':'FAIL')+'</li>').join("")+'</ul><p class="ns-note">These checks validate calculated relationships only. They do not certify glue joints, material strength, print scaling or real drawer movement. Make a small physical test before final cutting.</p>';
  byId("nsAssemblySteps").innerHTML=m.assemblySteps.map(step=>'<li>'+nsEsc(step)+'</li>').join("");
