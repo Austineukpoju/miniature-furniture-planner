@@ -152,6 +152,24 @@ test("nightstand shows assembled and exploded views tied to dimensions and mater
   expect(errors).toEqual([]);
 });
 
+
+test("nightstand support style switches between four legs and two full side panels", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto(appUrl);
+  await page.locator("#generateNightstand").click();
+  await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toHaveAttribute("data-support-style", "four-legs");
+  await expect(page.locator("#nightstandParts")).toContainText("Corner legs");
+  await page.locator("#supportStyle").selectOption("side-panels");
+  await page.locator("#generateNightstand").click();
+  await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toHaveAttribute("data-support-style", "side-panels");
+  await expect(page.locator("#nightstandPreview svg[aria-label^="+"Detailed exploded nightstand parts drawing"+"]')).toHaveAttribute("data-support-style", "side-panels");
+  await expect(page.locator("#nightstandParts")).toContainText("Full-height side supports");
+  await expect(page.locator("#nightstandParts")).not.toContainText("Corner legs");
+  await expect(page.locator("#nightstandStatus")).toContainText("two full side panels");
+  expect(errors).toEqual([]);
+});
+
 test("nightstand generator rejects impossible dimensions instead of showing an old concept", async ({ page }) => {
   await page.goto(appUrl);
   await page.locator("#generateNightstand").click();
