@@ -707,17 +707,19 @@ function makeNsOrtho(m){
  c+='<rect x="'+(x+8+leg)+'" y="'+shelfTop+'" width="'+(fw-2*leg)+'" height="'+(m.t*s)+'" fill="white" stroke="#111" stroke-width=".6"/>';
  const dy=shelfTop-(m.gap*s)-faceH;
  c+='<rect x="'+(x+8+(fw-faceW)/2)+'" y="'+dy+'" width="'+faceW+'" height="'+faceH+'" fill="white" stroke="#111" stroke-width=".7"/>';
- c+=nsText(x+8+fw/2,y+fh+7,"W "+nsFmt(m.W)+" mm",4.2);
- c+=nsText(x+2,y+fh/2,"H "+nsFmt(m.H)+" mm",4.2,"middle",'transform="rotate(-90 '+(x+2)+' '+(y+fh/2)+')"');
+ c+=nsDim(x+8,y+fh,x+8+fw,y+fh,"W "+nsFmt(m.W)+" mm",9);
+ c+=nsDim(x+8,y,x+8,y+fh,"H "+nsFmt(m.H)+" mm",-7);
  const sideX=142, sideY=15, ds=Math.min(36/m.D,72/m.H), sw=m.D*ds, sh=m.H*ds;
  c+=nsText(sideX+sw/2,8,"SIDE",5);
  c+='<rect x="'+sideX+'" y="'+sideY+'" width="'+sw+'" height="'+sh+'" fill="white" stroke="#111" stroke-width=".8"/>';
  c+='<rect x="'+sideX+'" y="'+(sideY+sh-m.t*ds)+'" width="'+sw+'" height="'+(m.t*ds)+'" fill="white" stroke="#111" stroke-width=".6"/>';
- c+=nsText(sideX+sw/2,sideY+sh+7,"D "+nsFmt(m.D)+" mm",4.2);
+ c+=nsDim(sideX,sideY+sh,sideX+sw,sideY+sh,"D "+nsFmt(m.D)+" mm",8);
+ c+=nsDim(sideX,sideY,sideX,sideY+sh,"H "+nsFmt(m.H)+" mm",-7);
  const topX=16,topY=118,ts=Math.min(80/m.W,30/m.D),tw=m.W*ts,td=m.D*ts;
  c+=nsText(topX+tw/2,112,"TOP",5);
  c+='<rect x="'+topX+'" y="'+topY+'" width="'+tw+'" height="'+td+'" fill="white" stroke="#111" stroke-width=".8"/>';
- c+=nsText(topX+tw/2,topY+td+7,nsFmt(m.W)+" × "+nsFmt(m.D)+" mm",4.2);
+ c+=nsDim(topX,topY+td,topX+tw,topY+td,"W "+nsFmt(m.W)+" mm",7);
+ c+=nsDim(topX+tw,topY,topX+tw,topY+td,"D "+nsFmt(m.D)+" mm",8);
  return nsSvg(190,166,c,"Dimensioned orthographic front, side and top views");
 }
 function renderNightstandPdf(model){
