@@ -127,7 +127,9 @@ test("nightstand PDF drawings and cut list recalculate from the current dimensio
   await expect(page.locator("#nsPdfSummary")).toContainText("40 W × 50 H × 30 D mm");
   await expect(page.locator("#nsCutIntro")).toContainText("40 × 50 × 30 mm");
   await expect(page.locator("#nsCutList")).toContainText("40 × 30 × 1");
-  await expect(page.locator("#nsGeometryChecks")).toContainText("All calculated component dimensions are positive: PASS");
+  await expect(page.locator("#nsGeometryChecks")).toContainText("All calculated component dimensions are finite and positive: PASS");
+  await expect(page.locator("#nsAssemblySteps li")).toHaveCount(7);
+  await expect(page.locator("#nsJointChecks li")).toHaveCount(6);
   expect(await page.evaluate(() => window.__printCalled)).toBe(true);
 });
 
@@ -145,3 +147,33 @@ test("nightstand blueprint refuses dimensions that cannot support a drawer and f
 });
 
 
+
+
+test("nightstand material and scale controls update PDF metadata without changing cut dimensions", async ({ page }) => {
+  await page.addInitScript(() => { window.print = () => { window.__printCalled = true; }; });
+  await page.goto(appUrl);
+  await page.locator("#planOutput").selectOption("nightstand");
+  await expect(page.locator("#nightstandOptions")).toBeVisible();
+  await page.locator("#materialType").selectOption("foamboard");
+  await page.locator("#miniScale").selectOption("24");
+  await page.locator("#print").click();
+  await expect(page.locator("#nsPdfSummary")).toContainText("material: Foam board");
+  await expect(page.locator("#nsPdfSummary")).toContainText("scale reference 1:24");
+  await expect(page.locator("#nsPdfSummary")).toContainText("full-size reference equivalent 864 W × 1080 H × 648 D mm");
+  await expect(page.locator("#nsCutList")).toContainText("36 × 27 × 1");
+  await expect(page.locator("#nsAssemblySteps li")).toHaveCount(7);
+  await expect(page.locator("#nsJointNote")).toContainText("Foam board");
+});
+
+test("switching back to cabinet printing preserves nightstand PDF structure and selects cabinet output", async ({ page }) => {
+  await page.addInitScript(() => { window.print = () => { window.__printCalled = true; }; });
+  await page.goto(appUrl);
+  await page.locator("#planOutput").selectOption("nightstand");
+  await page.locator("#print").click();
+  await expect(page.locator("#nsCutList tbody tr")).toHaveCount(10);
+  await page.locator("#planOutput").selectOption("cabinet");
+  await page.locator("#print").click();
+  await expect(page.locator("#nsCutList tbody tr")).toHaveCount(10);
+  await expect(page.locator("body")).not.toHaveClass(/print-nightstand/);
+  await expect(page.locator("#cutRows tr")).toHaveCount(4);
+});
