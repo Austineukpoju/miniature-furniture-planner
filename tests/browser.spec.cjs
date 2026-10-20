@@ -125,7 +125,7 @@ test("nightstand PDF drawings and cut list recalculate from the current dimensio
   await expect(page.locator("#nsPdfSummary")).toContainText("40 W × 50 H × 30 D mm");
   await expect(page.locator("#nsCutIntro")).toContainText("40 × 50 × 30 mm");
   await expect(page.locator("#nsCutList")).toContainText("40 × 30 × 1");
-  await expect(page.locator("#nsGeometryChecks")).toContainText("Positive part sizes: PASS");
+  await expect(page.locator("#nsGeometryChecks")).toContainText("All calculated component dimensions are positive: PASS");
   expect(await page.evaluate(() => window.__printCalled)).toBe(true);
 });
 
