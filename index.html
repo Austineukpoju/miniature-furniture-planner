@@ -399,31 +399,46 @@ updateToleranceDisplay();
 
 
 function renderCabinetPreview(plan) {
- const host=$("cabinetPreview"), caption=$("previewCaption");
+ const host=$("cabinetPreview"),caption=$("previewCaption");
  if(!host||!plan||!plan.ok)return;
- const {W,H,D,t}=plan.input,bodyD=D-t,kx=.42,ky=.24;
- const scale=Math.min(190/(W+bodyD*kx),170/(H+bodyD*ky),2.5);
- const left=(360-W*scale-bodyD*kx*scale)/2,top=42+bodyD*ky*scale;
+ const {W,H,D,t}=plan.input,bodyD=D-t;
+ const kx=.42,ky=.24,scale=Math.min(190/(W+D*kx),170/(H+D*ky),2.5);
+ const left=(360-W*scale-D*kx*scale)/2,top=42+D*ky*scale;
+ // x is outside width, y is depth (front=0, rear=D), z is height.
  const P=(x,y,z)=>[left+x*scale+y*kx*scale,top+(H-z)*scale-y*ky*scale];
- const poly=pts=>pts.map(v=>{const p=P(...v);return p[0].toFixed(2)+","+p[1].toFixed(2)}).join(" ");
- const face=(pts,fill)=>'<polygon points="'+poly(pts)+'" fill="'+fill+'" stroke="#79543a" stroke-width="1.1" stroke-linejoin="round"/>';
- const line=(a,b)=>{const p=P(...a),q=P(...b);return '<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="#5c3b27" stroke-width="1.4"/>'};
- let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 280" role="img" aria-label="Brown open-front cabinet proportional preview">';
+ const pts=vs=>vs.map(v=>{const p=P(...v);return p[0].toFixed(2)+","+p[1].toFixed(2)}).join(" ");
+ const face=(id,vs,fill)=>'<polygon data-face="'+id+'" points="'+pts(vs)+'" fill="'+fill+'" stroke="#79543a" stroke-width="1.1" stroke-linejoin="round"/>';
+ const line=(id,a,b)=>{const p=P(...a),q=P(...b);return '<line data-edge="'+id+'" x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="#5c3b27" stroke-width="1.3"/>'};
+ let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 280" role="img" aria-label="Brown open-front cabinet 3D preview" data-model-width="'+W+'" data-model-height="'+H+'" data-model-depth="'+D+'" data-body-depth="'+bodyD+'">';
  svg+='<text x="180" y="17" text-anchor="middle" font-size="10" fill="#79543a">PROPORTIONAL 3D-STYLE VIEW · NOT PRINT SCALE</text>';
- // Coordinate model: x=width, y=body depth, z=height; front is open.
- svg+=face([[0,bodyD,0],[W,bodyD,0],[W,bodyD,H],[0,bodyD,H]],"#c59a70");
- svg+=face([[0,0,0],[0,bodyD,0],[0,bodyD,H],[0,0,H]],"#a56f46");
- svg+=face([[W,0,0],[W,bodyD,0],[W,bodyD,H],[W,0,H]],"#8f5c38");
- svg+=face([[0,0,H],[0,bodyD,H],[W,bodyD,H],[W,0,H]],"#d6ad83");
- svg+=face([[t,0,H-t],[t,bodyD,H-t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#c99768");
- svg+=face([[t,0,t],[t,bodyD,t],[W-t,bodyD,t],[W-t,0,t]],"#b78153");
- svg+=face([[t,0,t],[t,bodyD,t],[t,bodyD,H-t],[t,0,H-t]],"#bd8a5e");
- svg+=face([[W-t,0,t],[W-t,bodyD,t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#a9754d");
- svg+=face([[t,0,0],[t,bodyD,0],[W-t,bodyD,0],[W-t,0,0]],"#c08d60");
- svg+=line([0,0,0],[0,0,H])+line([W,0,0],[W,0,H])+line([0,0,H],[W,0,H])+line([0,0,0],[W,0,0]);
+ // Draw back's inside face first; it sits behind the carcass at y=bodyD.
+ svg+=face("back-inside",[[0,bodyD,0],[W,bodyD,0],[W,bodyD,H],[0,bodyD,H]],"#c59a70");
+ // Side exterior faces; both sides end at bodyD, before the rear panel thickness.
+ svg+=face("left-outside",[[0,0,0],[0,bodyD,0],[0,bodyD,H],[0,0,H]],"#a56f46");
+ svg+=face("right-outside",[[W,0,0],[W,bodyD,0],[W,bodyD,H],[W,0,H]],"#8f5c38");
+ // Top is made of two side-panel strips and a middle panel between them.
+ svg+=face("top-left-strip",[[0,0,H],[0,bodyD,H],[t,bodyD,H],[t,0,H]],"#b78358");
+ svg+=face("top-panel",[[t,0,H],[t,bodyD,H],[W-t,bodyD,H],[W-t,0,H]],"#d6ad83");
+ svg+=face("top-right-strip",[[W-t,0,H],[W-t,bodyD,H],[W,bodyD,H],[W,0,H]],"#b78358");
+ // The interior surfaces belong to the top/bottom panels and the inner faces of the sides.
+ svg+=face("inside-top",[[t,0,H-t],[t,bodyD,H-t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#c99768");
+ svg+=face("inside-bottom",[[t,0,t],[t,bodyD,t],[W-t,bodyD,t],[W-t,0,t]],"#b78153");
+ svg+=face("inside-left",[[t,0,t],[t,bodyD,t],[t,bodyD,H-t],[t,0,H-t]],"#bd8a5e");
+ svg+=face("inside-right",[[W-t,0,t],[W-t,bodyD,t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#a9754d");
+ // Bottom outside is shown from below only as a narrow underside; the cabinet remains open at the front.
+ svg+=face("bottom-underside",[[t,0,0],[t,bodyD,0],[W-t,bodyD,0],[W-t,0,0]],"#c08d60");
+ // Front cut edges of the two sides, top and bottom.
+ svg+=face("front-left-edge",[[0,0,0],[t,0,0],[t,0,H],[0,0,H]],"#9b6843");
+ svg+=face("front-right-edge",[[W-t,0,0],[W,0,0],[W,0,H],[W-t,0,H]],"#75482d");
+ svg+=face("front-top-edge",[[t,0,H-t],[W-t,0,H-t],[W-t,0,H],[t,0,H]],"#e0b991");
+ svg+=face("front-bottom-edge",[[t,0,0],[W-t,0,0],[W-t,0,t],[t,0,t]],"#a9754d");
+ // Back thickness is the interval bodyD..D; draw the exposed top and right edge of the back panel.
+ svg+=face("back-top-edge",[[0,bodyD,H],[W,bodyD,H],[W,D,H],[0,D,H]],"#ad7b51");
+ svg+=face("back-right-edge",[[W,bodyD,0],[W,D,0],[W,D,H],[W,bodyD,H]],"#8f5c38");
+ svg+=line("front-left",[0,0,0],[0,0,H])+line("front-right",[W,0,0],[W,0,H])+line("front-top",[0,0,H],[W,0,H])+line("front-bottom",[0,0,0],[W,0,0]);
  svg+='<g fill="#5c3b27" font-size="10" font-weight="600"><text x="180" y="254" text-anchor="middle">Width: '+fmt(W)+' mm</text><text x="12" y="145">Height: '+fmt(H)+' mm</text><text x="265" y="231" text-anchor="middle">Depth: '+fmt(D)+' mm</text></g></svg>';
  host.innerHTML=svg;
- if(caption)caption.textContent='Open-front cabinet · outside size '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm. Body depth '+fmt(bodyD)+' mm plus rear panel thickness '+fmt(t)+' mm. Preview adjusts with the dimensions.';
+ if(caption)caption.textContent='Open-front cabinet · outside size '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm. Body depth '+fmt(bodyD)+' mm plus rear panel thickness '+fmt(t)+' mm. Preview updates with the dimensions.';
 }
 function renderPartViews(plan){
  const host=$("partViews");if(!host||!plan||!plan.ok)return;
