@@ -98,120 +98,24 @@ test("exploded diagram opens in an accessible enlarged overlay and closes cleanl
   await expect(page.locator("#diagramModal")).not.toHaveAttribute("open", "");
 });
 
-test("nightstand concept recalculates its parts from current dimensions and marks limits clearly", async ({ page }) => {
+test("nightstand generator is removed while the cabinet planner remains functional", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(appUrl);
-  await page.locator("#generateNightstand").click();
-  await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toBeVisible();
-  await expect(page.locator("#nightstandParts .nightstand-part")).toHaveCount(10);
-  await expect(page.locator("#nightstandParts")).toContainText("Corner legs");
-  await expect(page.locator("#nightstandParts")).toContainText("Drawer front");
-  await expect(page.locator("#nightstandStatus")).toContainText("Dimensional checks passed for ideal geometry");
-  await expect(page.locator("#nightstandStatus")).toContainText("physical test");
-  const first = await page.locator("#nightstandParts").innerText();
+  await expect(page.locator("#nightstandConcept")).toHaveCount(0);
+  await expect(page.locator("#generateNightstand")).toHaveCount(0);
+  await expect(page.locator("#supportStyle")).toHaveCount(0);
+  await expect(page.locator("#cabinetPreview svg")).toBeVisible();
   await page.locator("#width").fill("40");
   await page.locator("#height").fill("50");
   await page.locator("#depth").fill("30");
   await page.locator("#thickness").fill("1");
-  await page.locator("#generateNightstand").click();
-  const second = await page.locator("#nightstandParts").innerText();
-  expect(second).not.toEqual(first);
+  await page.locator("#generate").click();
+  await expect(page.locator("#error")).toHaveText("");
+  await expect(page.locator("#cabinetPreview svg")).toHaveAttribute("data-model-width", "40");
+  await expect(page.locator("#cabinetPreview svg")).toHaveAttribute("data-model-height", "50");
+  await expect(page.locator("#cabinetPreview svg")).toHaveAttribute("data-model-depth", "30");
+  await expect(page.locator("#cutRows tr")).toHaveCount(4);
+  await expect(page.locator("#pieceList .piece")).toHaveCount(4);
   expect(errors).toEqual([]);
-});
-
-test("nightstand shows assembled and exploded views tied to dimensions and material thickness", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
-  await page.goto(appUrl);
-  await page.locator("#width").fill("40");
-  await page.locator("#height").fill("50");
-  await page.locator("#depth").fill("30");
-  await page.locator("#thickness").fill("2");
-  await page.locator("#generateNightstand").click();
-  await expect(page.locator("#nightstandPreview .nightstand-view-card")).toHaveCount(4);
-  await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-width", "40");
-  await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-height", "50");
-  await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-depth", "30");
-  await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-material-thickness", "2");
-  await expect(page.locator("#nightstandStatus")).toContainText("Material thickness 2 mm");
-  await expect(page.locator("#nightstandPreview")).toContainText("Drawer dimensions and placement");
-  await expect(page.locator("#nightstandPreview")).toContainText("Front, side and top dimensions");
-  await expect(page.locator("#nightstandPreview svg[aria-label^="+"'Dimensioned front side and top views'"+"]")).toBeVisible();
-  await expect(page.locator("#nightstandPreview")).toContainText("Clearance at each side");
-  await expect(page.locator("#nightstandPreview")).toContainText("Gap above shelf");
-  await expect(page.locator("#nightstandPreview")).toContainText("Gap below upper rail");
-  await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toContainText("FINISHED NIGHTSTAND");
-  await expect(page.locator("#nightstandPreview svg [data-part^='drawer-front']").first()).toBeVisible();
-  const first = await page.locator("#nightstandParts").innerText();
-  await page.locator("#thickness").fill("1");
-  await page.locator("#generateNightstand").click();
-  await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-material-thickness", "1");
-  const second = await page.locator("#nightstandParts").innerText();
-  expect(second).not.toEqual(first);
-  expect(errors).toEqual([]);
-});
-
-
-test("nightstand support style switches between four legs and two full side panels", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
-  await page.goto(appUrl);
-  await page.locator("#generateNightstand").click();
-  await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toHaveAttribute("data-support-style", "four-legs");
-  await expect(page.locator("#nightstandParts")).toContainText("Corner legs");
-  await page.locator("#supportStyle").selectOption("side-panels");
-  await page.locator("#generateNightstand").click();
-  await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toHaveAttribute("data-support-style", "side-panels");
-  await expect(page.locator('#nightstandPreview svg[aria-label*="exploded"]')).toHaveAttribute("data-support-style", "side-panels");
-  await expect(page.locator("#nightstandParts")).toContainText("Full-height side supports");
-  await expect(page.locator("#nightstandParts")).not.toContainText("Corner legs");
-  await expect(page.locator("#nightstandStatus")).toContainText("two full side panels");
-  expect(errors).toEqual([]);
-});
-
-test("nightstand generator rejects impossible dimensions instead of showing an old concept", async ({ page }) => {
-  await page.goto(appUrl);
-  await page.locator("#generateNightstand").click();
-  await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toBeVisible();
-  await page.locator("#width").fill("10");
-  await page.locator("#height").fill("10");
-  await page.locator("#depth").fill("5");
-  await page.locator("#thickness").fill("10");
-  await page.locator("#generateNightstand").click();
-  await expect(page.locator("#nightstandStatus")).toContainText("width");
-  await expect(page.locator("#nightstandPreview svg")).toHaveCount(0);
-  await expect(page.locator("#nightstandParts .nightstand-part")).toHaveCount(0);
-});
-
-test("nightstand dimensions preserve the intended outside envelope and positive panel sizes", async ({ page }) => {
-  await page.goto(appUrl);
-  const result = await page.evaluate(() => generateNightstandConcept({W:40,H:50,D:30,t:1}));
-  expect(result.ok).toBe(true);
-  expect(result.checks.outsideWidth).toBe(40);
-  expect(result.checks.outsideHeight).toBe(50);
-  expect(result.checks.outsideDepth).toBe(30);
-  expect(result.checks.dimensionsMatch).toBe(true);
-  expect(result.checks.allPartsPositive).toBe(true);
-  expect(result.parts).toHaveLength(10);
-  expect(result.parts.find(p => p.id === "L").qty).toBe(4);
-  expect(result.parts.find(p => p.id === "S").qty).toBe(1);
-  expect(result.parts.find(p => p.id === "DS").qty).toBe(2);
-});
-
-test("nightstand geometry stays consistent across multiple valid dimensions", async ({ page }) => {
-  await page.goto(appUrl);
-  const results = await page.evaluate(() => [
-    generateNightstandConcept({W:36,H:45,D:27,t:1}),
-    generateNightstandConcept({W:80,H:100,D:60,t:2}),
-    generateNightstandConcept({W:120,H:150,D:90,t:3})
-  ]);
-  for (const result of results) {
-    expect(result.ok).toBe(true);
-    expect(result.checks.dimensionsMatch).toBe(true);
-    expect(result.checks.allPartsPositive).toBe(true);
-    expect(result.checks.outsideWidth).toBe(result.input.W);
-    expect(result.checks.outsideHeight).toBe(result.input.H);
-    expect(result.checks.outsideDepth).toBe(result.input.D);
-  }
 });
