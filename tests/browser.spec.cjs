@@ -107,7 +107,8 @@ test("nightstand concept recalculates its parts from current dimensions and mark
   await expect(page.locator("#nightstandParts .nightstand-part")).toHaveCount(10);
   await expect(page.locator("#nightstandParts")).toContainText("Corner legs");
   await expect(page.locator("#nightstandParts")).toContainText("Drawer front");
-  await expect(page.locator("#nightstandStatus")).toContainText("Experimental only");
+  await expect(page.locator("#nightstandStatus")).toContainText("Idealized geometry checks passed");
+  await expect(page.locator("#nightstandStatus")).toContainText("physical fit still need a material test");
   const first = await page.locator("#nightstandParts").innerText();
   await page.locator("#width").fill("40");
   await page.locator("#height").fill("50");
@@ -131,4 +132,36 @@ test("nightstand generator rejects impossible dimensions instead of showing an o
   await expect(page.locator("#nightstandStatus")).toContainText("width");
   await expect(page.locator("#nightstandPreview svg")).toHaveCount(0);
   await expect(page.locator("#nightstandParts .nightstand-part")).toHaveCount(0);
+});
+
+test("nightstand dimensions preserve the intended outside envelope and positive panel sizes", async ({ page }) => {
+  await page.goto(appUrl);
+  const result = await page.evaluate(() => generateNightstandConcept({W:40,H:50,D:30,t:1}));
+  expect(result.ok).toBe(true);
+  expect(result.checks.outsideWidth).toBe(40);
+  expect(result.checks.outsideHeight).toBe(50);
+  expect(result.checks.outsideDepth).toBe(30);
+  expect(result.checks.dimensionsMatch).toBe(true);
+  expect(result.checks.allPartsPositive).toBe(true);
+  expect(result.parts).toHaveLength(10);
+  expect(result.parts.find(p => p.id === "L").qty).toBe(4);
+  expect(result.parts.find(p => p.id === "S").qty).toBe(1);
+  expect(result.parts.find(p => p.id === "DS").qty).toBe(2);
+});
+
+test("nightstand geometry stays consistent across multiple valid dimensions", async ({ page }) => {
+  await page.goto(appUrl);
+  const results = await page.evaluate(() => [
+    generateNightstandConcept({W:36,H:45,D:27,t:1}),
+    generateNightstandConcept({W:80,H:100,D:60,t:2}),
+    generateNightstandConcept({W:120,H:150,D:90,t:3})
+  ]);
+  for (const result of results) {
+    expect(result.ok).toBe(true);
+    expect(result.checks.dimensionsMatch).toBe(true);
+    expect(result.checks.allPartsPositive).toBe(true);
+    expect(result.checks.outsideWidth).toBe(result.input.W);
+    expect(result.checks.outsideHeight).toBe(result.input.H);
+    expect(result.checks.outsideDepth).toBe(result.input.D);
+  }
 });
