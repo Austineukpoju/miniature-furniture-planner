@@ -26,7 +26,7 @@ table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left
 .steps{padding-left:22px;margin:0}.steps li{padding:0 0 12px 4px}.steps li:last-child{padding-bottom:0}.stepnum{font-weight:800;color:var(--green)}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 @media(min-width:680px){.fields{grid-template-columns:repeat(4,minmax(0,1fr))}.piece-list{grid-template-columns:repeat(3,minmax(0,1fr))}main{padding-top:24px}}
-@media print{body{background:#fff;color:#111;font-size:11pt}header{background:#fff;color:#111;padding:0 0 12px;border-radius:0;border-bottom:2px solid #111}header p{color:#333}.eyebrow{color:#111}main{padding:0}.panel{background:#fff;box-shadow:none;border:1px solid #999;break-inside:avoid;padding:12px;margin-bottom:10px}h2,h3{color:#111}.actions,.no-print,footer{display:none!important}.piece{background:#fff;break-inside:avoid;border:1px solid #aaa}.piece-list{grid-template-columns:repeat(2,minmax(0,1fr))}.piece svg{max-width:100%}.notice{background:#fff;border:1px solid #777;break-inside:avoid}h1{font-size:24pt}th,td{border-color:#bbb}.stat{background:#fff;border:1px solid #bbb}.stat strong{color:#111}.muted,.qty,.hint{color:#333}}
+@media print{@page{size:auto;margin:12mm}body{background:#fff;color:#111;font-size:11pt}header{background:#fff;color:#111;padding:0 0 12px;border-radius:0;border-bottom:2px solid #111}header p{color:#333}.eyebrow{color:#111}main{padding:0}.panel{background:#fff;box-shadow:none;border:1px solid #999;break-inside:avoid;padding:12px;margin-bottom:10px}h2,h3{color:#111}.actions,.no-print,footer{display:none!important}.piece{background:#fff;break-inside:avoid;page-break-inside:avoid;border:1px solid #aaa;margin:0 0 8mm}.piece-list{display:block}.piece svg{display:block;max-width:none;width:auto;height:auto;margin:8px 0 0;overflow:visible}.notice{background:#fff;border:1px solid #777;break-inside:avoid}h1{font-size:24pt}th,td{border-color:#bbb}.stat{background:#fff;border:1px solid #bbb}.stat strong{color:#111}.muted,.qty,.hint{color:#333}}
 </style>
 </head>
 <body>
@@ -53,7 +53,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 </section>
 <section class="panel" id="patterns">
 <h2>3. Cutting patterns</h2>
-<p class="muted">White-paper blueprint style: black cutting outlines, dimension marks, and labels. The rectangle itself is the cut piece; dimension annotations sit outside its edge. In the print dialog, choose <strong>100% / Actual size</strong> and turn off “Fit to page” if that option appears. The browser may split very large patterns across pages.</p>
+<p class="muted">White-paper blueprint style: black cutting outlines, dimension marks, and labels. Each rectangle is drawn at its real millimetre size. In print preview, choose <strong>100% / Actual size</strong> and turn off “Fit to page”. Patterns print one per row so the browser does not shrink them to fit a two-column grid. The SVG includes an 8 mm label margin on each side; very large pieces may exceed the paper and must be printed on larger paper or tiled.</p>
 <div class="piece-list" id="pieceList"></div>
 </section>
 <section class="panel" id="guide">
@@ -108,7 +108,7 @@ const steps=[
 'Optional: cover exposed edges with thin paper strips, let them dry, then paint or decorate. Add a door, drawer or shelf only after this basic body fits correctly.'
 ];
 $('stepsList').innerHTML=steps.map((s,i)=>'<li><span class="stepnum">Step '+(i+1)+':</span> '+s+'</li>').join('');
-currentPlan={W,H,D,t,parts,steps};
+const maxPrintW=164,maxPrintH=244;const tooLarge=parts.filter(p=>p.w>maxPrintW||p.h>maxPrintH);let printWarn=document.getElementById('printWarning');if(!printWarn){printWarn=document.createElement('p');printWarn.id='printWarning';printWarn.className='notice';$('patterns').insertBefore(printWarn,$('pieceList'));}if(tooLarge.length){printWarn.hidden=false;printWarn.innerHTML='<strong>Paper-size warning:</strong> '+tooLarge.map(p=>p.name).join(', ')+' exceed the approximate safe A4 pattern area at 100% scale. Do not use “Fit to page” to force them smaller; use larger paper or split the pattern and verify the joined dimensions.';}else{printWarn.hidden=true;printWarn.textContent='';}currentPlan={W,H,D,t,parts,steps};
 }
 $('generate').addEventListener('click',render);
 ['width','height','depth','thickness'].forEach(id=>$(id).addEventListener('change',render));
