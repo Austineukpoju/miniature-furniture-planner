@@ -560,53 +560,74 @@ function renderNightstandConcept(){
  const r=generateNightstandConcept(input);
  if(!r.ok){status.textContent=r.error;preview.innerHTML="";list.innerHTML="";return;}
  const {W,H,D,t}=input,{leg,legH,railH,shelfW,shelfD,shelfZ,drawerW,drawerH,drawerZ,drawerBoxInnerW,drawerBoxDepth,drawerSideH,drawerBottomDepth,clearance,innerW,innerD,zRail}=r;
- const iso=(exploded)=>{
-  const scale=Math.min(190/(W+D*.5+(exploded?W*.22:0)),145/(H+D*.22+(exploded?H*.14:0)));
-  const ox=220,oy=exploded?260:245;
-  const P=(x,y,z)=>[ox+(x-W/2)*scale+(y-D/2)*scale*.5,oy-z*scale-(y-D/2)*scale*.22];
-  const polygon=(id,vs,fill)=>'<polygon data-part="'+id+'" points="'+vs.map(v=>{const p=P(...v);return p[0].toFixed(1)+","+p[1].toFixed(1)}).join(" ")+'" fill="'+fill+'" stroke="#654126" stroke-width="1.2" stroke-linejoin="round"/>';
-  const slab=(id,x,y,z,w,d,h,front,top,side)=>{const a=[x,y,z],b=[x+w,y,z],c=[x+w,y+d,z],e=[x,y+d,z],A=[x,y,z+h],B=[x+w,y,z+h],C=[x+w,y+d,z+h],E=[x,y+d,z+h];return polygon(id+"-top",[A,B,C,E],top)+polygon(id+"-side",[b,c,C,B],side)+polygon(id+"-front",[a,b,B,A],front)};
-  const dx=exploded?Math.max(W*.08,2*t):0,dy=exploded?Math.max(D*.12,2*t):0,dz=exploded?Math.max(H*.07,2*t):0;
-  let s='<svg viewBox="0 0 440 350" role="img" aria-label="'+(exploded?"Exploded nightstand with labelled components":"Assembled nightstand 3D preview")+'" data-model-width="'+W+'" data-model-height="'+H+'" data-model-depth="'+D+'" data-material-thickness="'+t+'"><text x="220" y="17" text-anchor="middle" font-size="12" font-weight="700" fill="#5c3b27">'+(exploded?"EXPLODED COMPONENT VIEW":"FINISHED NIGHTSTAND · 3D VIEW")+'</text>';
-  // Rear structure first, then the shelf/rails, drawer box, front legs and face, then the top.
-  s+=slab("rear-left-leg",exploded?-dx:0,D-leg+(exploded?dy:0),0,leg,leg,legH,"#8f5c38","#b78358","#75482d");
-  s+=slab("rear-right-leg",exploded?W-leg+dx:W-leg,D-leg+(exploded?dy:0),0,leg,leg,legH,"#8f5c38","#b78358","#75482d");
-  s+=slab("shelf",leg,leg+(exploded?dy:0),shelfZ-(exploded?dz:0),shelfW,shelfD,t,"#b78358","#d7b18c","#8f5c38");
-  s+=slab("rear-rail",leg,D-leg-t+(exploded?dy:0),zRail,W-2*leg,t,railH,"#8f5c38","#b78358","#75482d");
-  s+=slab("left-rail",0,leg,zRail,t,D-2*leg,railH,"#8f5c38","#b78358","#75482d");
-  s+=slab("right-rail",W-leg,leg,zRail,t,D-2*leg,railH,"#8f5c38","#b78358","#75482d");
-  s+=slab("front-rail",leg,0,zRail,W-2*leg,t,railH,"#a56f46","#c08d60","#75482d");
-  s+=slab("front-left-leg",exploded?-dx:0,exploded?-dy:0,0,leg,leg,legH,"#a56f46","#c08d60","#75482d");
-  s+=slab("front-right-leg",exploded?W-leg+dx:W-leg,exploded?-dy:0,0,leg,leg,legH,"#a56f46","#c08d60","#75482d");
-  // Drawer is drawn as a real box: left/right walls, rear wall and bottom; the face is a separate panel.
-  const boxX=leg+clearance+t,boxY=t,boxZ=drawerZ;
-  s+=slab("drawer-side-left",boxX,boxY,boxZ,t,drawerBoxDepth,drawerSideH,"#a56f46","#c08d60","#75482d");
-  s+=slab("drawer-side-right",leg+clearance+drawerW-2*t,boxY,boxZ,t,drawerBoxDepth,drawerSideH,"#a56f46","#c08d60","#75482d");
-  s+=slab("drawer-back",boxX+t,boxY+drawerBoxDepth-t,boxZ,drawerBoxInnerW,t,drawerSideH,"#8f5c38","#b78358","#75482d");
-  s+=slab("drawer-bottom",boxX+t,boxY,boxZ,drawerBoxInnerW,drawerBottomDepth,t,"#b78358","#d7b18c","#8f5c38");
-  s+=slab("drawer-front",leg+clearance,exploded?-dy*2:0,drawerZ+(exploded?dz*1.5:0),drawerW,t,drawerH,"#c08d60","#d7b18c","#8f5c38");
-  s+=slab("top",exploded?-dx*.15:0,exploded?-dy:0,H-t+(exploded?dz:0),W,D,t,"#c59a70","#e4c29f","#9b6843");
-  if(exploded){
-   const labels=[["L · CORNER LEGS ×4",20,48],["T · TOP ×1",335,48],["S · LOWER SHELF ×1",20,315],["RF/RB · RAILS",335,315],["DF · DRAWER FRONT",220,333]];
-   s+='<g fill="#5c3b27" font-size="10" font-weight="700">'+labels.map(a=>'<text x="'+a[1]+'" y="'+a[2]+'" text-anchor="'+(a[1]===220?"middle":a[1]<100?"start":"end")+'">'+a[0]+'</text>').join("")+'</g>';
-   s+='<text x="220" y="347" text-anchor="middle" font-size="9" fill="#77685c">Part spacing is illustrative; use the cut list for exact sizes.</text>';
-  }else{
-   s+='<g fill="#5c3b27" font-size="9.5" font-weight="700"><text x="12" y="43">Drawer width '+fmt(drawerW)+' mm</text><text x="12" y="56">Drawer height '+fmt(drawerH)+' mm</text><text x="428" y="43" text-anchor="end">Side gap '+fmt(clearance)+' mm each</text><text x="428" y="56" text-anchor="end">Thickness '+fmt(t)+' mm</text></g>';
-   const q=P(leg+clearance,0,drawerZ),q2=P(leg+clearance+drawerW,0,drawerZ);
-   s+='<path d="M'+q[0].toFixed(1)+' '+q[1].toFixed(1)+' L12 64 M'+q2[0].toFixed(1)+' '+q2[1].toFixed(1)+' L428 64" fill="none" stroke="#92704f" stroke-width="1" stroke-dasharray="3 3"/>';
-  }
-  s+='<text x="220" y="338" text-anchor="middle" font-size="10" fill="#5c3b27">'+W+' W × '+H+' H × '+D+' D mm · material '+t+' mm</text></svg>';
+ const colors={ink:"#493629",line:"#6d4d37",wood:"#b98253",light:"#e6c39b",side:"#98633f",dark:"#75482f",paper:"#fffaf3",gap:"#287b91"};
+ const assembled=()=>{
+  const sc=Math.min(175/(W+D*.42),210/H), ox=210,oy=285;
+  const P=(x,y,z)=>[ox+(x-W/2)*sc+(y-D/2)*sc*.42,oy-z*sc-(y-D/2)*sc*.20];
+  const poly=(id,pts,fill)=>'<polygon data-part="'+id+'" points="'+pts.map(v=>{const p=P(...v);return p[0]+","+p[1]}).join(" ")+'" fill="'+fill+'" stroke="'+colors.ink+'" stroke-width="1.5" stroke-linejoin="round"/>';
+  const panel=(id,x,y,z,w,d,h,front,top,side)=>{const a=[x,y,z],b=[x+w,y,z],c=[x+w,y+d,z],e=[x,y+d,z],A=[x,y,z+h],B=[x+w,y,z+h],C=[x+w,y+d,z+h],E=[x,y+d,z+h];return poly(id+"-top",[A,B,C,E],top)+poly(id+"-side",[b,c,C,B],side)+poly(id+"-front",[a,b,B,A],front)};
+  let s='<svg viewBox="0 0 440 340" role="img" aria-label="Assembled coloured nightstand with engineering linework" data-model-width="'+W+'" data-model-height="'+H+'" data-model-depth="'+D+'" data-material-thickness="'+t+'"><text x="220" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="'+colors.ink+'">ASSEMBLED NIGHTSTAND · COLOUR + TECHNICAL OUTLINES</text>';
+  // Structural members are drawn in assembly order, with all panels aligned to their calculated positions.
+  s+=panel("rear-left-leg",0,D-leg,0,leg,leg,legH,colors.side,colors.wood,colors.dark);
+  s+=panel("rear-right-leg",W-leg,D-leg,0,leg,leg,legH,colors.side,colors.wood,colors.dark);
+  s+=panel("left-side-rail",0,leg,zRail,leg,D-2*leg,railH,colors.side,colors.wood,colors.dark);
+  s+=panel("right-side-rail",W-leg,leg,zRail,leg,D-2*leg,railH,colors.side,colors.wood,colors.dark);
+  s+=panel("rear-rail",leg,D-leg-t,zRail,innerW,t,railH,colors.side,colors.wood,colors.dark);
+  s+=panel("shelf",leg,leg,shelfZ,shelfW,shelfD,t,colors.wood,colors.light,colors.side);
+  s+=panel("front-left-leg",0,0,0,leg,leg,legH,colors.wood,colors.light,colors.side);
+  s+=panel("front-right-leg",W-leg,0,0,leg,leg,legH,colors.wood,colors.light,colors.side);
+  s+=panel("front-rail",leg,0,zRail,innerW,t,railH,colors.wood,colors.light,colors.side);
+  const bx=leg+clearance+t,by=t,bz=drawerZ;
+  s+=panel("drawer-left-side",bx,by,bz,t,drawerBoxDepth,drawerSideH,colors.side,colors.wood,colors.dark);
+  s+=panel("drawer-right-side",bx+drawerBoxInnerW+t,by,bz,t,drawerBoxDepth,drawerSideH,colors.side,colors.wood,colors.dark);
+  s+=panel("drawer-back",bx+t,by+drawerBoxDepth-t,bz,drawerBoxInnerW,t,drawerSideH,colors.side,colors.wood,colors.dark);
+  s+=panel("drawer-bottom",bx+t,by,bz,drawerBoxInnerW,drawerBottomDepth,t,colors.wood,colors.light,colors.side);
+  s+=panel("drawer-front",leg+clearance,0,drawerZ,drawerW,t,drawerH,colors.wood,colors.light,colors.side);
+  s+=panel("top",0,0,H-t,W,D,t,colors.wood,colors.light,colors.side);
+  s+='<g fill="'+colors.ink+'" font-size="10" font-weight="700"><text x="12" y="42">Overall: '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm</text><text x="428" y="42" text-anchor="end">Material: '+fmt(t)+' mm</text><text x="12" y="57">Drawer face: '+fmt(drawerW)+' × '+fmt(drawerH)+' mm</text><text x="428" y="57" text-anchor="end">Side gap: '+fmt(clearance)+' mm each</text></g></svg>';
+  return s;
+ };
+ const exploded=()=>{
+  // This is a deliberately arranged assembly plate: the carcass remains the visual anchor;
+  // top, shelf, drawer face and drawer box are displaced along labelled assembly axes.
+  const sc=Math.min(250/W,140/H,190/D), x0=85,y0=45, fw=Math.max(100,W*sc), fh=Math.max(100,H*sc), legPx=leg*sc, tPx=Math.max(3,t*sc), railPx=railH*sc;
+  const X=x=>x*sc, Y=z=>y0+(H-z)*sc;
+  const rect=(id,x,y,w,h,fill,label)=>'<rect data-part="'+id+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="'+fill+'" stroke="'+colors.ink+'" stroke-width="1.4"/><text x="'+(x+w/2)+'" y="'+(y+h/2+3)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+colors.ink+'">'+label+'</text>';
+  const dim=(x1,y1,x2,y2,label,tx,ty)=>'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+colors.gap+'" stroke-width="1.2" stroke-dasharray="4 3"/><text x="'+tx+'" y="'+ty+'" font-size="9" fill="'+colors.gap+'" font-weight="700">'+label+'</text>';
+  let s='<svg viewBox="0 0 620 410" role="img" aria-label="Exploded nightstand assembly drawing with separated drawer and dimension leaders" data-model-width="'+W+'" data-model-height="'+H+'" data-model-depth="'+D+'" data-material-thickness="'+t+'"><rect x="0" y="0" width="620" height="410" fill="'+colors.paper+'"/><text x="310" y="19" text-anchor="middle" font-size="13" font-weight="700" fill="'+colors.ink+'">EXPLODED ASSEMBLY · PART POSITIONS + CLEARANCES</text><text x="310" y="34" text-anchor="middle" font-size="9" fill="'+colors.line+'">Illustrative assembly spacing; labels and dimensions are calculated from the current inputs</text>';
+  // Front elevation of cabinet frame, with top and drawer face pulled away from the carcass.
+  const cx=75,cy=70,cw=Math.min(300,fw),ch=Math.min(240,fh),lp=Math.max(8,cw*leg/W),topH=Math.max(6,cw*t/W),shelfY=cy+ch*(1-shelfZ/H),railY=cy+ch*(1-(zRail+railH)/H),faceX=cx+lp+cw*clearance/W,faceW=cw*drawerW/W,faceH=ch*drawerH/H,faceY=cy+ch*(1-(drawerZ+drawerH)/H);
+  s+=rect("cabinet-left-leg",cx,cy,lp,ch,colors.wood,"L1");
+  s+=rect("cabinet-right-leg",cx+cw-lp,cy,lp,ch,colors.wood,"L2");
+  s+=rect("cabinet-shelf",cx+lp,shelfY,cw-2*lp,Math.max(5,topH),colors.light,"S · SHELF");
+  s+=rect("cabinet-front-rail",cx+lp,railY,cw-2*lp,Math.max(7,railPx),colors.wood,"RF · RAIL");
+  // Open drawer cavity is intentionally unfilled so its boundaries and clearance are obvious.
+  s+='<rect x="'+(cx+lp)+'" y="'+faceY+'" width="'+(cw-2*lp)+'" height="'+faceH+'" fill="none" stroke="'+colors.gap+'" stroke-width="1.5" stroke-dasharray="4 3"/>';
+  s+=dim(cx+lp,faceY-8,cx+lp+cw*clearance/W,faceY-8,'SIDE GAP '+fmt(clearance)+' mm',cx+lp,faceY-13);
+  // Components are separated into a right-hand parts column, not scattered over the cabinet.
+  const px=420, pw=130;
+  s+=rect("top-separated",px,65,pw,Math.max(9,topH+4),colors.light,"T · TOP ×1");
+  s+=rect("drawer-front-separated",px,96,Math.max(45,faceW*.55),Math.max(15,faceH),colors.wood,"DF · FACE");
+  s+=rect("drawer-side-separated",px,145,pw*.75,Math.max(12,faceH*.75),colors.wood,"DS ×2 · SIDES");
+  s+=rect("drawer-back-separated",px,180,pw*.75,Math.max(8,topH+3),colors.side,"DB · BACK");
+  s+=rect("drawer-bottom-separated",px,207,pw*.75,Math.max(8,topH+3),colors.light,"DN · BOTTOM");
+  s+=rect("shelf-separated",px,234,pw,Math.max(8,topH+3),colors.light,"S · SHELF ×1");
+  s+=rect("rails-separated",px,261,pw,Math.max(9,railPx),colors.wood,"RAILS ×4");
+  s+=rect("legs-separated",px,290,pw,Math.max(15,Math.min(32,legPx*2)),colors.wood,"L · LEGS ×4");
+  s+=dim(cx+cw+6,cy,cx+cw+6,cy+ch,'H '+fmt(H)+' mm',cx+cw+12,cy+ch/2);
+  s+=dim(cx,cy+ch+12,cx+cw,cy+ch+12,'W '+fmt(W)+' mm',cx+cw/2,cy+ch+25);
+  s+='<path d="M'+(cx+cw*.72)+' '+(faceY+faceH/2)+' L405 '+(faceY+faceH/2)+' L405 106 L415 106" fill="none" stroke="'+colors.gap+'" stroke-width="1.2" stroke-dasharray="4 3"/><text x="420" y="335" font-size="10" font-weight="700" fill="'+colors.ink+'">DRAWER FIT</text><text x="420" y="350" font-size="9" fill="'+colors.ink+'">Face: '+fmt(drawerW)+' × '+fmt(drawerH)+' mm</text><text x="420" y="364" font-size="9" fill="'+colors.ink+'">Box depth: '+fmt(drawerBoxDepth)+' mm</text><text x="420" y="378" font-size="9" fill="'+colors.ink+'">Clearance: '+fmt(clearance)+' mm / side</text><text x="420" y="392" font-size="9" fill="'+colors.ink+'">Board: '+fmt(t)+' mm</text></svg>';
   return s;
  };
  const dimensionViews=()=>{
-  const scale=Math.min(260/W,130/H,220/D),frontW=W*scale,frontH=H*scale,sideD=D*scale,topW=W*scale,topD=D*scale;
-  const dimLine=(x1,y1,x2,y2,label,tx,ty)=>'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#79543a" stroke-width="1" marker-start="url(#arr)" marker-end="url(#arr)"/><text x="'+tx+'" y="'+ty+'" text-anchor="middle" font-size="10" fill="#5c3b27">'+label+'</text>';
-  return '<svg viewBox="0 0 440 250" role="img" aria-label="Dimensioned front side and top views of nightstand"><defs><marker id="arr" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto-start-reverse"><path d="M0 0 L5 2.5 L0 5 Z" fill="#79543a"/></marker></defs><text x="220" y="15" text-anchor="middle" font-size="12" font-weight="700" fill="#5c3b27">DIMENSIONED ORTHOGRAPHIC VIEWS</text><g fill="none" stroke="#79543a" stroke-width="1.3"><rect x="45" y="35" width="'+Math.max(50,frontW*.55)+'" height="'+Math.max(65,frontH*.55)+'"/><rect x="285" y="35" width="'+Math.max(40,sideD*.45)+'" height="'+Math.max(65,frontH*.55)+'"/><rect x="45" y="174" width="'+Math.max(50,topW*.55)+'" height="'+Math.max(25,topD*.35)+'"/></g><g stroke="#a56f46" stroke-width="1.2" fill="#d7b18c"><rect x="45" y="'+(35+Math.max(65,frontH*.55)*.34)+'" width="'+Math.max(50,frontW*.55)+'" height="'+Math.max(15,frontH*.55*.18)+'"/><rect x="45" y="'+(174+Math.max(25,topD*.35)*.4)+'" width="'+Math.max(50,topW*.55)+'" height="'+Math.max(5,t*scale*.35)+'"/></g>'+dimLine(45,30,45+Math.max(50,frontW*.55),30,fmt(W)+' mm',45+Math.max(50,frontW*.55)/2,25)+dimLine(34,35,34,35+Math.max(65,frontH*.55),fmt(H)+' mm',22,72)+dimLine(285,30,285+Math.max(40,sideD*.45),30,fmt(D)+' mm',285+Math.max(40,sideD*.45)/2,25)+'<g font-size="10" fill="#5c3b27" font-weight="700"><text x="45" y="160">FRONT</text><text x="285" y="160">SIDE</text><text x="45" y="235">TOP</text><text x="220" y="246" text-anchor="middle" font-weight="500">Outside dimensions · material thickness '+fmt(t)+' mm</text></g></svg>';
+  const fw=190,fh=145,fx=40,fy=35,sx=295,sw=100,topY=225;
+  const line=(x1,y1,x2,y2,label,tx,ty,anchor='middle')=>'<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+colors.gap+'" stroke-width="1" marker-start="url(#nsArrow)" marker-end="url(#nsArrow)"/><text x="'+tx+'" y="'+ty+'" text-anchor="'+anchor+'" font-size="10" fill="'+colors.ink+'">'+label+'</text>';
+  return '<svg viewBox="0 0 440 285" role="img" aria-label="Dimensioned front side and top nightstand elevations"><defs><marker id="nsArrow" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto-start-reverse"><path d="M0 0 L5 2.5 L0 5 Z" fill="'+colors.gap+'"/></marker></defs><text x="220" y="15" text-anchor="middle" font-size="12" font-weight="700" fill="'+colors.ink+'">DIMENSIONED ORTHOGRAPHIC VIEWS</text><g fill="none" stroke="'+colors.ink+'" stroke-width="1.4"><rect x="'+fx+'" y="'+fy+'" width="'+fw+'" height="'+fh+'"/><rect x="'+sx+'" y="'+fy+'" width="'+sw+'" height="'+fh+'"/><rect x="40" y="'+topY+'" width="'+fw+'" height="55"/></g><g stroke="'+colors.line+'" fill="'+colors.light+'"><rect x="'+fx+'" y="'+(fy+fh*.78)+'" width="'+fw+'" height="'+(fh*.08)+'"/><rect x="'+fx+'" y="'+(fy+fh*.30)+'" width="'+fw+'" height="'+(fh*.22)+'" fill="'+colors.wood+'"/><rect x="40" y="'+(topY+20)+'" width="'+fw+'" height="5"/></g>'+line(fx,fy-8,fx+fw,fy-8,fmt(W)+' mm',fx+fw/2,fy-13)+line(fx-12,fy,fx-12,fy+fh,fmt(H)+' mm',fx-16,fy+fh/2,'end')+line(sx,fy-8,sx+sw,fy-8,fmt(D)+' mm',sx+sw/2,fy-13)+'<g fill="'+colors.ink+'" font-size="10" font-weight="700"><text x="40" y="195">FRONT</text><text x="295" y="195">SIDE</text><text x="40" y="278">TOP</text><text x="220" y="278" text-anchor="middle" font-weight="400">Material thickness: '+fmt(t)+' mm</text></g></svg>';
  };
  const shelfTop=shelfZ+t,drawerBottomGap=drawerZ-shelfTop,drawerTopGap=zRail-(drawerZ+drawerH);
- preview.innerHTML='<div class="nightstand-view-grid"><article class="nightstand-view-card"><h3>1. Finished nightstand</h3><p class="muted">Assembled perspective with drawer size and side clearance.</p>'+iso(false)+'</article><article class="nightstand-view-card"><h3>2. Exploded construction</h3><p class="muted">Main components separated for identification.</p>'+iso(true)+'</article><article class="nightstand-view-card"><h3>3. Front, side and top dimensions</h3><p class="muted">Orthographic views show the requested outside measurements.</p>'+dimensionViews()+'</article></div><section class="nightstand-view-card" style="margin-top:12px"><h3>Drawer dimensions and placement</h3><div class="fields"><div><strong>Front width</strong><br>'+fmt(drawerW)+' mm</div><div><strong>Front height</strong><br>'+fmt(drawerH)+' mm</div><div><strong>Clearance at each side</strong><br>'+fmt(clearance)+' mm each</div><div><strong>Gap above shelf</strong><br>'+fmt(drawerBottomGap)+' mm</div><div><strong>Gap below upper rail</strong><br>'+fmt(drawerTopGap)+' mm</div><div><strong>Drawer box depth</strong><br>'+fmt(drawerBoxDepth)+' mm</div></div><p class="muted">Ideal dimensions only. Glue, cutting kerf and cardboard compression may affect physical fit; test a sample before final cutting.</p></section>';
+ preview.innerHTML='<div class="nightstand-view-grid"><article class="nightstand-view-card"><h3>1. Finished nightstand</h3><p class="muted">Coloured wood surfaces with engineering-style outlines.</p>'+assembled()+'</article><article class="nightstand-view-card"><h3>2. Exploded assembly drawing</h3><p class="muted">The drawer opening stays visible; removable components are arranged in a labelled parts column.</p>'+exploded()+'</article><article class="nightstand-view-card"><h3>3. Dimensioned elevations</h3><p class="muted">Front, side and top views with outside dimensions.</p>'+dimensionViews()+'</article></div><section class="nightstand-view-card" style="margin-top:12px"><h3>Drawer position and fit calculations</h3><div class="fields"><div><strong>Drawer face</strong><br>'+fmt(drawerW)+' × '+fmt(drawerH)+' mm</div><div><strong>Clearance at each side</strong><br>'+fmt(clearance)+' mm</div><div><strong>Gap above shelf</strong><br>'+fmt(drawerBottomGap)+' mm</div><div><strong>Gap below upper rail</strong><br>'+fmt(drawerTopGap)+' mm</div><div><strong>Drawer box depth</strong><br>'+fmt(drawerBoxDepth)+' mm</div><div><strong>Material thickness</strong><br>'+fmt(t)+' mm</div></div><p class="muted">Exploded offsets show assembly relationships, not manufacturing measurements. Use the calculated cut list for part sizes. Verify cardboard fit with a test build.</p></section>';
  list.innerHTML=r.parts.map(p=>'<div class="nightstand-part" data-part-id="'+p.id+'"><strong>'+p.id+' — '+p.name+'</strong><span>Cut '+p.qty+' · '+fmt(p.a)+' × '+fmt(p.b)+' × '+fmt(p.c)+' mm</span><p class="muted">'+p.role+'</p></div>').join("");
- status.textContent="Nightstand dimensions calculated: "+fmt(r.checks.outsideWidth)+" × "+fmt(r.checks.outsideHeight)+" × "+fmt(r.checks.outsideDepth)+" mm outside. Material thickness "+fmt(t)+" mm included. "+r.warning;
+ status.textContent="Nightstand dimensions calculated: "+fmt(r.checks.outsideWidth)+" × "+fmt(r.checks.outsideHeight)+" × "+fmt(r.checks.outsideDepth)+" mm outside. Material thickness "+fmt(t)+" mm included. Dimensional checks passed for ideal geometry. Cardboard compression, cut accuracy, glue thickness and drawer movement still require a physical test.";
 }
 const nightstandButton=document.getElementById("generateNightstand");
 if(nightstandButton)nightstandButton.addEventListener("click",()=>{nightstandWasGenerated=true;renderNightstandConcept();});
