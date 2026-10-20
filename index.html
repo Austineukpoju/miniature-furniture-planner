@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#173f35">
+<meta name="theme-color" content="#5c3b27">
 <title>Miniature Furniture Planner</title>
 <style>
-:root{--ink:#173f35;--green:#276653;--mint:#e8f3ed;--cream:#fbf8f0;--gold:#efb95b;--muted:#65746c;--line:#d9e3dc;--white:#fff}
+:root{--ink:#5c3b27;--green:#8f5c38;--mint:#f4e4d3;--cream:#fffaf5;--gold:#d9a66b;--muted:#77685c;--line:#e1cbb8;--white:#fff}
 *{box-sizing:border-box}body{margin:0;background:var(--cream);color:#20342c;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 header{background:var(--ink);color:white;padding:25px 18px 28px;border-radius:0 0 25px 25px}
 .wrap{max-width:900px;margin:auto} .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:.72rem;font-weight:800;color:var(--gold)}
@@ -244,7 +244,7 @@ function render() {
   const result = generateCabinetDesign(input);
   const err = $("error");
   err.textContent = "";
-  if (!result.ok) { err.textContent = result.error; currentPlan = null; return; }
+  if (!result.ok) { err.textContent = result.error; currentPlan = null; $("cabinetPreview").innerHTML = ""; $("partViews").innerHTML = ""; $("cutRows").innerHTML = ""; $("pieceList").innerHTML = ""; $("stepsList").innerHTML = ""; $("sizeLabel").textContent = "—"; $("pieceCount").textContent = "—"; $("materialLabel").textContent = "—"; $("previewCaption").textContent = "Correct the dimensions to generate a preview."; const warning = document.getElementById("printWarning"); if (warning) { warning.hidden = true; warning.textContent = ""; } return; }
   const { W, H, D, t } = result.input;
   const parts = result.parts;
   $("sizeLabel").textContent = fmt(W) + " × " + fmt(H) + " × " + fmt(D);
