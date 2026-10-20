@@ -23,7 +23,7 @@ button{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:75
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}.stat{background:var(--mint);border-radius:12px;padding:11px}.stat strong{display:block;font-size:1.15rem;color:var(--ink)}.stat span{font-size:.75rem;color:var(--muted)}
 .preview-stage{background:linear-gradient(145deg,#fffaf5,#f3e5d6);border:1px solid #e1cbb8;border-radius:14px;padding:10px;overflow:hidden}.preview-stage svg{display:block;width:100%;height:auto;max-height:360px;margin:auto}.preview-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-top:10px}.preview-legend span{display:flex;align-items:center;gap:5px}.preview-legend i{display:inline-block;width:13px;height:13px;border:1px solid #315f4c;border-radius:3px}.legend-top{background:#d6ad83}.legend-side{background:#a56f46}.legend-back{background:#c59a70}
 table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.04em}
-.part-view-list{display:grid;grid-template-columns:1fr;gap:12px}.part-view-card{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;border:1px solid #e1cbb8;border-radius:14px;padding:12px;background:#fffaf5;min-width:0}.part-view-graphic{background:#f8efe5;border-radius:10px;padding:8px;min-width:0}.part-view-graphic svg{display:block;width:100%;height:auto;max-height:230px}.part-view-copy h3{color:#79543a}.part-view-copy p{margin:5px 0;font-size:.88rem}@media(min-width:620px){.part-view-card{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}}\n.piece-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.piece{border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.piece svg{display:block;max-width:100%;height:auto;margin:8px auto 0}.piece .dims{font-weight:750}.piece .qty{color:var(--muted);font-size:.83rem}
+.part-view-list{display:grid;grid-template-columns:1fr;gap:12px}.part-view-card{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;border:1px solid #e1cbb8;border-radius:14px;padding:12px;background:#fffaf5;min-width:0}.part-view-graphic{background:#f8efe5;border-radius:10px;padding:8px;min-width:0}.part-view-graphic svg{display:block;width:100%;height:auto;max-height:none}.exploded-diagram{width:100%;overflow:hidden;background:#f8efe5;border:1px solid #e1cbb8;border-radius:12px;padding:4px}.exploded-diagram svg{display:block;width:100%;height:auto;max-height:none;min-height:300px}.part-view-copy h3{color:#79543a}.part-view-copy p{margin:5px 0;font-size:.88rem}@media(min-width:620px){.part-view-card{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}}\n.piece-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.piece{border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.piece svg{display:block;max-width:100%;height:auto;margin:8px auto 0}.piece .dims{font-weight:750}.piece .qty{color:var(--muted);font-size:.83rem}
 .steps{padding-left:22px;margin:0}.steps li{padding:0 0 12px 4px}.steps li:last-child{padding-bottom:0}.stepnum{font-weight:800;color:var(--green)}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 @media(min-width:680px){.fields{grid-template-columns:repeat(4,minmax(0,1fr))}.piece-list{grid-template-columns:repeat(3,minmax(0,1fr))}main{padding-top:24px}}
@@ -446,47 +446,46 @@ function renderPartViews(plan){
  const parts=plan.parts;
  const side=parts.find(p=>p.id==="A"),top=parts.find(p=>p.id==="B"),bottom=parts.find(p=>p.id==="C"),back=parts.find(p=>p.id==="D");
  if(!side||!top||!bottom||!back){host.innerHTML="<p>Exploded view is unavailable for this plan.</p>";return;}
- // Schematic exploded view: parts are deliberately separated along the assembly axes.
- // Geometry uses the canonical cut list; extrusion is visual only.
- const sc=Math.min(250/(W+D*.48),165/(H+D*.28),2.3);
- const ox=200,oy=215,kx=.48,ky=.28;
+ // Explode by a visible gap based on the overall furniture dimensions, not just material thickness.
+ // This keeps the pieces visibly separate even when cardboard is very thin.
+ const gapX=Math.max(8,W*.14),gapZ=Math.max(8,H*.14),gapY=Math.max(8,D*.35);
+ const sc=Math.min(245/(W+D*.48+gapX*.7),160/(H+D*.28+gapZ*1.3),2.1);
+ const ox=220,oy=242,kx=.48,ky=.28;
  const P=(x,y,z)=>[ox+(x-W/2)*sc+(y-D/2)*sc*kx,oy-z*sc-(y-D/2)*sc*ky];
  const pt=a=>a.map(v=>{const q=P(...v);return q[0].toFixed(1)+","+q[1].toFixed(1)}).join(" ");
  const poly=(id,arr,fill)=>'<polygon data-exploded-part="'+id+'" points="'+pt(arr)+'" fill="'+fill+'" stroke="#654126" stroke-width="1.4" stroke-linejoin="round"/>';
- const line=(a,b)=>{const A=P(...a),B=P(...b);return '<line x1="'+A[0]+'" y1="'+A[1]+'" x2="'+B[0]+'" y2="'+B[1]+'" stroke="#92704f" stroke-width="1.2" stroke-dasharray="4 4"/>';};
+ const line=(a,b)=>{const A=P(...a),B=P(...b);return '<line data-guide="true" x1="'+A[0]+'" y1="'+A[1]+'" x2="'+B[0]+'" y2="'+B[1]+'" stroke="#92704f" stroke-width="1.3" stroke-dasharray="4 4"/>';};
  const slab=(id,x,y,z,w,d,h,front,topFill,sideFill)=>{
   const v000=[x,y,z],v100=[x+w,y,z],v110=[x+w,y+d,z],v010=[x,y+d,z];
   const v001=[x,y,z+h],v101=[x+w,y,z+h],v111=[x+w,y+d,z+h],v011=[x,y+d,z+h];
   return poly(id+"-top",[v001,v101,v111,v011],topFill)+poly(id+"-side",[v101,v100,v110,v111],sideFill)+poly(id+"-front",[v000,v100,v101,v001],front);
  };
- let svg='<svg viewBox="0 0 400 350" role="img" aria-label="Exploded cabinet assembly diagram with separated side panels, top, bottom and rear panel" style="width:100%;height:auto;max-height:440px">';
- svg+='<text x="200" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="#5c3b27">EXPLODED ASSEMBLY · PARTS SPREAD APART</text>';
- // rear panel is pulled backwards (larger y) so the body and its rear attachment are visible.
- svg+=slab("D",0,bodyD+Math.max(8,D*.22),0,W,t,H,"#c59a70","#d7b18c","#9b6843");
- // bottom and top float vertically outside the carcass to show where they fit.
- svg+=slab("C",t,0,-Math.max(7,H*.12),W-2*t,bodyD,t,"#c08d60","#d5a579","#8f5c38");
- svg+=slab("B",t,0,H+Math.max(7,H*.12),W-2*t,bodyD,t,"#d6ad83","#e4c29f","#9b6843");
- // sides are offset outwards, revealing the top/bottom panels fitted between them.
- svg+=slab("A-left",-t*2,0,0,t,bodyD,H,"#a56f46","#c08d60","#75482d");
- svg+=slab("A-right",W+t,0,0,t,bodyD,H,"#a56f46","#c08d60","#75482d");
- // Dashed construction guides connect each part to its intended fitted position.
+ let svg='<svg viewBox="0 0 440 390" role="img" aria-label="Exploded cabinet assembly diagram with visibly separated side panels, top, bottom and rear panel" data-exploded-gap-x="'+fmt(gapX)+'" data-exploded-gap-y="'+fmt(gapY)+'" data-exploded-gap-z="'+fmt(gapZ)+'">';
+ svg+='<text x="220" y="20" text-anchor="middle" font-size="14" font-weight="700" fill="#5c3b27">EXPLODED ASSEMBLY · PARTS SPREAD APART</text>';
+ // Back is moved rearward; its real thickness remains t.
+ svg+=slab("D",0,bodyD+gapY,0,W,t,H,"#c59a70","#d7b18c","#9b6843");
+ // Top and bottom are moved vertically; their cut sizes still come from the canonical parts list.
+ svg+=slab("C",t,0,-gapZ-t,W-2*t,bodyD,t,"#c08d60","#d5a579","#8f5c38");
+ svg+=slab("B",t,0,H+gapZ,W-2*t,bodyD,t,"#d6ad83","#e4c29f","#9b6843");
+ // Side panels are moved outward by a clearly visible design-scaled gap.
+ svg+=slab("A-left",-gapX-t,0,0,t,bodyD,H,"#a56f46","#c08d60","#75482d");
+ svg+=slab("A-right",W+gapX,0,0,t,bodyD,H,"#a56f46","#c08d60","#75482d");
+ // Dashed guides show the intended fitted positions, not the exploded positions.
  svg+=line([0,0,0],[0,0,H])+line([W,0,0],[W,0,H]);
  svg+=line([t,0,H-t],[W-t,0,H-t])+line([t,0,t],[W-t,0,t]);
  svg+=line([0,bodyD,0],[0,bodyD,H])+line([W,bodyD,0],[W,bodyD,H]);
- svg+='<g font-size="10" font-weight="700" fill="#5c3b27">';
+ svg+='<g font-size="12" font-weight="700" fill="#5c3b27">';
  const labels=[
-  {p:[-t*2,0,H*.55],x:15,y:120,a:"A · SIDE × 2"},
-  {p:[W+t,0,H*.55],x:286,y:120,a:"A · SIDE × 2"},
-  {p:[W/2,0,H+Math.max(7,H*.12)+t],x:200,y:47,a:"B · TOP × 1"},
-  {p:[W/2,0,-Math.max(7,H*.12)],x:200,y:320,a:"C · BOTTOM × 1"},
-  {p:[W/2,bodyD+Math.max(8,D*.22),H],x:310,y:55,a:"D · BACK × 1"}];
- labels.forEach(l=>{const q=P(...l.p);svg+='<path d="M'+q[0].toFixed(1)+' '+q[1].toFixed(1)+' L'+l.x+' '+l.y+'" stroke="#92704f" stroke-width="1" fill="none"/><text x="'+l.x+'" y="'+(l.y-4)+'" text-anchor="middle">'+l.a+'</text>';});
- svg+='</g><text x="200" y="340" text-anchor="middle" font-size="9" fill="#77685c">Exploded spacing is illustrative; use cut dimensions below.</text></svg>';
- const cards=parts.map(p=>{
-  const notes={A:"Make two matching side walls. They stand vertically at the left and right.",B:"The top fits between the side walls. Align its front edge with the side fronts.",C:"The bottom fits between the side walls. Keep its front edge aligned with the side fronts.",D:"Attach the back across the rear edges. Its thickness adds to the cabinet's outside depth."};
-  return '<article class="part-view-card"><div class="part-view-copy"><h3>Part '+p.id+' — '+p.name+'</h3><p><strong>Cut '+p.qty+'</strong> · '+fmt(p.width)+' × '+fmt(p.height)+' mm</p><p>Material thickness: '+fmt(t)+' mm</p><p>'+notes[p.id]+'</p></div></article>';
- }).join("");
- host.innerHTML='<div class="exploded-diagram">'+svg+'</div><div class="part-view-list">'+cards+'</div><p class="muted">Read the diagram first, then follow the matching part labels and cut sizes. Dashed lines show approximate assembly positions. This cabinet version has no drawer, door, or shelf.</p>';
+  {p:[-gapX-t,0,H*.55],x:58,y:142,a:"A · SIDE × 2"},
+  {p:[W+gapX,0,H*.55],x:382,y:142,a:"A · SIDE × 2"},
+  {p:[W/2,0,H+gapZ+t],x:190,y:52,a:"B · TOP × 1"},
+  {p:[W/2,0,-gapZ],x:220,y:356,a:"C · BOTTOM × 1"},
+  {p:[W/2,bodyD+gapY,H],x:350,y:58,a:"D · BACK × 1"}];
+ labels.forEach(l=>{const q=P(...l.p);svg+='<path d="M'+q[0].toFixed(1)+' '+q[1].toFixed(1)+' L'+l.x+' '+l.y+'" stroke="#92704f" stroke-width="1.2" fill="none"/><text x="'+l.x+'" y="'+(l.y-5)+'" text-anchor="middle">'+l.a+'</text>';});
+ svg+='</g><text x="220" y="380" text-anchor="middle" font-size="10" fill="#77685c">Spacing is exaggerated for clarity. Use exact cut dimensions below.</text></svg>';
+ const notes={A:"Cut two identical side walls. These stand vertically on the left and right.",B:"The top fits between the side walls. Align its front edge with the side fronts.",C:"The bottom fits between the side walls. Align its front edge with the side fronts.",D:"The back covers the rear edges. Its thickness adds to the cabinet's outside depth."};
+ const cards=parts.map(p=>'<article class="part-view-card" data-part-card="'+p.id+'"><div class="part-view-copy"><h3>Part '+p.id+' — '+p.name+'</h3><p><strong>Cut '+p.qty+'</strong> · '+fmt(p.width)+' × '+fmt(p.height)+' mm</p><p>Material thickness: '+fmt(t)+' mm</p><p>'+notes[p.id]+'</p></div></article>').join("");
+ host.innerHTML='<div class="exploded-diagram">'+svg+'</div><div class="part-view-list">'+cards+'</div><p class="muted">Read the exploded diagram first, then follow the matching letter and cut size. Dashed lines show the intended assembly positions. The extra spacing is only for visibility; it does not change any calculated dimensions. This version has no drawer, door, or shelf.</p>';
 }
 </script>
 </body>
