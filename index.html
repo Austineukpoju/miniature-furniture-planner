@@ -65,9 +65,12 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 <div class="field"><label for="width">Outside width (mm)</label><input id="width" type="number" min="10" max="500" step="1" value="36"></div>
 <div class="field"><label for="height">Outside height (mm)</label><input id="height" type="number" min="10" max="500" step="1" value="45"></div>
 <div class="field"><label for="depth">Outside depth (mm)</label><input id="depth" type="number" min="5" max="500" step="1" value="27"></div>
-<div class="field"><label for="thickness">Cardboard thickness (mm)</label><input id="thickness" type="number" min="0.2" max="10" step="0.1" value="1"></div>
+<div class="field"><label for="thickness">Material thickness (mm)</label><input id="thickness" type="number" min="0.2" max="10" step="0.1" value="1"></div>
+<div class="field"><label for="materialType">Material type</label><select id="materialType"><option value="cardboard" selected>Cardboard / paperboard</option><option value="corrugated">Corrugated cardboard</option><option value="basswood">Basswood / craft wood</option><option value="plywood">Thin plywood</option></select></div>
+<div class="field"><label for="miniScale">Miniature scale</label><select id="miniScale"><option value="12">1:12</option><option value="16">1:16</option><option value="24" selected>1:24</option><option value="48">1:48</option><option value="1">Custom / not to scale</option></select></div>
 </div>
-<p class="hint">Measurements are the finished miniature's outside dimensions. Use a ruler or caliper if possible. This first design is an open-front cabinet without a door or drawer.</p>
+<p class="hint">Enter the finished miniature dimensions in millimetres. Scale is used to show the equivalent full-size dimensions; it does not resize your entered measurements. Material type is a guidance label, while thickness drives the geometry.</p>
+<p id="materialScaleNote" class="hint" aria-live="polite"></p>
 <div class="actions"><button class="primary" id="generate">Update my plan</button><button class="secondary" id="print">Print / Save as PDF</button><button class="secondary" id="download">Save plan as text</button></div>
 <p id="error" role="alert" style="color:#a12b2b;font-weight:700;margin-bottom:0"></p>
 </section>
@@ -309,17 +312,22 @@ function rectSvg(w, h, label) {
 }
 
 function render() {
-  const input = { W: Number($("width").value), H: Number($("height").value), D: Number($("depth").value), t: Number($("thickness").value) };
+  const input = { W: Number($("width").value), H: Number($("height").value), D: Number($("depth").value), t: Number($("thickness").value), material: $("materialType").value, scale: Number($("miniScale").value) };
   const result = generateCabinetDesign(input);
   const err = $("error");
   err.textContent = "";
   if (!result.ok) { err.textContent = result.error; currentPlan = null; $("cabinetPreview").innerHTML = ""; $("partViews").innerHTML = ""; $("cutRows").innerHTML = ""; $("pieceList").innerHTML = ""; $("stepsList").innerHTML = ""; $("sizeLabel").textContent = "—"; $("pieceCount").textContent = "—"; $("materialLabel").textContent = "—"; $("previewCaption").textContent = "Correct the dimensions to generate a preview."; const warning = document.getElementById("printWarning"); if (warning) { warning.hidden = true; warning.textContent = ""; } return; }
+  result.input.material = input.material;
+  result.input.scale = input.scale;
   const { W, H, D, t } = result.input;
   const parts = result.parts;
+  const materialNames = {cardboard:"Cardboard / paperboard",corrugated:"Corrugated cardboard",basswood:"Basswood / craft wood",plywood:"Thin plywood"};
+  const scaleNote = input.scale === 1 ? "Custom / not to scale" : "1:" + input.scale + " · full-size equivalent " + fmt(W*input.scale) + " × " + fmt(H*input.scale) + " × " + fmt(D*input.scale) + " mm";
+  $("materialScaleNote").textContent = "Material: " + materialNames[input.material] + " · " + fmt(t) + " mm thick · " + scaleNote;
   $("sizeLabel").textContent = fmt(W) + " × " + fmt(H) + " × " + fmt(D);
   $("pieceCount").textContent = result.individualPieceCount + " panels";
   $("materialLabel").textContent = fmt(t) + " mm";
-  $("designNote").textContent = result.designName + ". The dimensions below are ideal cut sizes for the stated joint arrangement; physical material and cutting tolerances may affect the final fit.";
+  $("designNote").textContent = result.designName + ". " + materialNames[input.material] + " at " + fmt(t) + " mm thick; " + scaleNote + ". The dimensions below are ideal cut sizes for the stated joint arrangement; physical material and cutting tolerances may affect the final fit.";
   $("cutRows").innerHTML = parts.map(p => "<tr><td>" + p.id + " — " + p.name + "</td><td>" + p.qty + "</td><td>" + fmt(p.width) + " × " + fmt(p.height) + "</td><td>" + p.purpose + "</td></tr>").join("");
   $("pieceList").innerHTML = parts.map(p => '<article class="piece"><h3>' + p.id + " — " + p.name + '</h3><div class="qty">Cut ' + p.qty + ' · rectangle</div><div class="dims">' + fmt(p.width) + " × " + fmt(p.height) + " mm</div>" + rectSvg(p.width, p.height, p.id + " " + p.name) + "</article>").join("");
   $("stepsList").innerHTML = result.steps.map((s, i) => "<li><span class=\"stepnum\">Step " + (i + 1) + " — " + s.title + ":</span> " + s.text + "</li>").join("");
@@ -342,7 +350,7 @@ function render() {
 }
 
 $("generate").addEventListener("click", render);
-["width", "height", "depth", "thickness"].forEach(id => $(id).addEventListener("change", render));
+["width", "height", "depth", "thickness", "materialType", "miniScale"].forEach(id => $(id).addEventListener("change", render));
 $("print").addEventListener("click", () => { render(); if ($("error").textContent || !currentPlan) return; const ns = generateNightstandBlueprint(currentPlan.input); if (!ns.ok) { $("error").textContent = ns.error; return; } renderNightstandPdf(ns.model); window.print(); });
 $("download").addEventListener("click", () => {
   render();
@@ -581,6 +589,9 @@ function nsDim(x1,y1,x2,y2,label,offset=0){
 }
 function generateNightstandBlueprint(input){
  const {W,H,D,t}=input;
+ const material = input.material || "cardboard";
+ const scale = Number(input.scale || 24);
+ const materialNames = {cardboard:"Cardboard / paperboard",corrugated:"Corrugated cardboard",basswood:"Basswood / craft wood",plywood:"Thin plywood"};
  const leg=Math.max(2.7*t,W*.075);
  const railH=Math.max(3*t,H*.1);
  const shelfH=t;
@@ -623,7 +634,7 @@ function generateNightstandBlueprint(input){
   {id:"09",name:"Drawer back",qty:1,a:backW,b:drawerSideH,c:t,purpose:"Rear wall fits between drawer sides"},
   {id:"10",name:"Drawer bottom",qty:1,a:backW,b:bottomD,c:t,purpose:"Bottom panel fits inside drawer box"}
  ];
- const model={W,H,D,t,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks};
+ const model={W,H,D,t,material,scale,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks};
  model.explodedSvg=makeNsExploded(model);
  model.ortho=makeNsOrtho(model);
  return {ok:true,model};
@@ -678,7 +689,7 @@ function makeNsOrtho(m){
 function renderNightstandPdf(model){
  const m=model;
  const byId=id=>document.getElementById(id);
- byId("nsPdfSummary").textContent="Outside size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · material thickness "+nsFmt(m.t)+" mm · support style: four separate corner legs.";
+ byId("nsPdfSummary").textContent="Outside size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · "+(materialNames[m.material]||"Cardboard / paperboard")+" · thickness "+nsFmt(m.t)+" mm · scale "+(m.scale===1?"custom / not to scale":"1:"+m.scale+" (full-size equivalent "+nsFmt(m.W*m.scale)+" × "+nsFmt(m.H*m.scale)+" × "+nsFmt(m.D*m.scale)+" mm)")+" · support style: four separate corner legs.";
  byId("nsExplodedView").innerHTML=m.explodedSvg;
  byId("nsOrthoViews").innerHTML='<div class="ns-view-card"><h3>Front, side and top</h3>'+m.ortho+'</div><div class="ns-view-card"><h3>Key dimensions</h3><p>Outside width: '+nsFmt(m.W)+' mm</p><p>Outside height: '+nsFmt(m.H)+' mm</p><p>Outside depth: '+nsFmt(m.D)+' mm</p><p>Material: '+nsFmt(m.t)+' mm</p><p>Drawer side clearance: '+nsFmt(m.clearance)+' mm each side</p><p>Calculated drawer box depth: '+nsFmt(m.sideLen)+' mm</p><p>Calculated vertical gap above and below drawer: '+nsFmt(m.gap)+' mm</p></div>';
  byId("nsCutIntro").textContent="Calculated for "+nsFmt(m.W)+" × "+nsFmt(m.H)+" × "+nsFmt(m.D)+" mm outside dimensions using "+nsFmt(m.t)+" mm material. Cut sizes are length × width/height × thickness unless otherwise noted.";
