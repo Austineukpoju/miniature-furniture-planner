@@ -104,7 +104,8 @@ test("nightstand engineering pages are generated only when Print / Save as PDF i
   await page.locator("#thickness").fill("1");
   await page.locator("#print").click();
   await expect(page.locator("#nsPdfSummary")).toContainText("36 W × 45 H × 27 D mm");
-  await expect(page.locator("#nsFinishedView svg")).toHaveAttribute("aria-label", /finished nightstand/i);
+  await expect(page.locator("#nightstandPdfSection")).toContainText("engineering design basis");
+  await expect(page.locator("#nightstandPdfSection")).not.toContainText("finished nightstand");
   await expect(page.locator("#nsExplodedView svg")).toHaveAttribute("aria-label", /exploded construction/i);
   await expect(page.locator("#nsCutList tbody tr")).toHaveCount(10);
   await expect(page.locator("#nsCutList")).toContainText("Corner legs");
