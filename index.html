@@ -512,90 +512,81 @@ function renderCabinetPreview(plan) {
  const host=$("cabinetPreview"),caption=$("previewCaption");
  if(!host||!plan||!plan.ok)return;
  const {W,H,D,t}=plan.input,bodyD=D-t;
- const kx=.42,ky=.24,scale=Math.min(190/(W+D*kx),170/(H+D*ky),2.5);
- const left=(360-W*scale-D*kx*scale)/2,top=42+D*ky*scale;
- // x is outside width, y is depth (front=0, rear=D), z is height.
- const P=(x,y,z)=>[left+x*scale+y*kx*scale,top+(H-z)*scale-y*ky*scale];
+ // All surfaces are projected from the same physical x/y/z coordinate system:
+ // x = left-to-right, y = front-to-back, z = bottom-to-top.
+ const kx=.48,ky=.28;
+ const scale=Math.min(210/(W+D*kx+8),178/(H+D*ky+8),2.6);
+ const P=(x,y,z)=>[205+(x-W/2)*scale+(y-D/2)*scale*kx,228-z*scale-(y-D/2)*scale*ky];
  const pts=vs=>vs.map(v=>{const p=P(...v);return p[0].toFixed(2)+","+p[1].toFixed(2)}).join(" ");
- const face=(id,vs,fill)=>'<polygon data-face="'+id+'" points="'+pts(vs)+'" fill="'+fill+'" stroke="#79543a" stroke-width="1.1" stroke-linejoin="round"/>';
- const line=(id,a,b)=>{const p=P(...a),q=P(...b);return '<line data-edge="'+id+'" x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="#5c3b27" stroke-width="1.3"/>'};
- let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 280" role="img" aria-label="Brown open-front cabinet 3D preview" data-model-width="'+W+'" data-model-height="'+H+'" data-model-depth="'+D+'" data-body-depth="'+bodyD+'">';
- svg+='<text x="180" y="17" text-anchor="middle" font-size="10" fill="#79543a">PROPORTIONAL 3D-STYLE VIEW · NOT PRINT SCALE</text>';
- // Draw back's inside face first; it sits behind the carcass at y=bodyD.
- svg+=face("back-inside",[[0,bodyD,0],[W,bodyD,0],[W,bodyD,H],[0,bodyD,H]],"#c59a70");
- // Side exterior faces; both sides end at bodyD, before the rear panel thickness.
- svg+=face("left-outside",[[0,0,0],[0,bodyD,0],[0,bodyD,H],[0,0,H]],"#a56f46");
- svg+=face("right-outside",[[W,0,0],[W,bodyD,0],[W,bodyD,H],[W,0,H]],"#8f5c38");
- // Top is made of two side-panel strips and a middle panel between them.
- svg+=face("top-left-strip",[[0,0,H],[0,bodyD,H],[t,bodyD,H],[t,0,H]],"#b78358");
- svg+=face("top-panel",[[t,0,H],[t,bodyD,H],[W-t,bodyD,H],[W-t,0,H]],"#d6ad83");
- svg+=face("top-right-strip",[[W-t,0,H],[W-t,bodyD,H],[W,bodyD,H],[W,0,H]],"#b78358");
- // The interior surfaces belong to the top/bottom panels and the inner faces of the sides.
- svg+=face("inside-top",[[t,0,H-t],[t,bodyD,H-t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#c99768");
- svg+=face("inside-bottom",[[t,0,t],[t,bodyD,t],[W-t,bodyD,t],[W-t,0,t]],"#b78153");
- svg+=face("inside-left",[[t,0,t],[t,bodyD,t],[t,bodyD,H-t],[t,0,H-t]],"#bd8a5e");
- svg+=face("inside-right",[[W-t,0,t],[W-t,bodyD,t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#a9754d");
- // Bottom outside is shown from below only as a narrow underside; the cabinet remains open at the front.
- svg+=face("bottom-underside",[[t,0,0],[t,bodyD,0],[W-t,bodyD,0],[W-t,0,0]],"#c08d60");
- // Front cut edges of the two sides, top and bottom.
- svg+=face("front-left-edge",[[0,0,0],[t,0,0],[t,0,H],[0,0,H]],"#9b6843");
- svg+=face("front-right-edge",[[W-t,0,0],[W,0,0],[W,0,H],[W-t,0,H]],"#75482d");
- svg+=face("front-top-edge",[[t,0,H-t],[W-t,0,H-t],[W-t,0,H],[t,0,H]],"#e0b991");
- svg+=face("front-bottom-edge",[[t,0,0],[W-t,0,0],[W-t,0,t],[t,0,t]],"#a9754d");
- // Back thickness is the interval bodyD..D; draw the exposed top and right edge of the back panel.
- svg+=face("back-top-edge",[[0,bodyD,H],[W,bodyD,H],[W,D,H],[0,D,H]],"#ad7b51");
- svg+=face("back-right-edge",[[W,bodyD,0],[W,D,0],[W,D,H],[W,bodyD,H]],"#8f5c38");
+ const face=(id,vs,fill,extra="")=>'<polygon data-face="'+id+'" points="'+pts(vs)+'" fill="'+fill+'" stroke="#67452f" stroke-width=".9" stroke-linejoin="round" '+extra+'/>';
+ const line=(id,a,b)=>{const p=P(...a),q=P(...b);return '<line data-edge="'+id+'" x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="#543724" stroke-width="1.05" stroke-linecap="round"/>';};
+ let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 410 280" role="img" aria-label="Isometric 3D open-front cabinet with correctly positioned top, bottom, side walls and rear panel" data-model-width="'+W+'" data-model-height="'+H+'" data-model-depth="'+D+'" data-body-depth="'+bodyD+'">';
+ svg+='<defs><linearGradient id="cabTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#efd2ae"/><stop offset="1" stop-color="#c99361"/></linearGradient><linearGradient id="cabSide" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9c643e"/><stop offset="1" stop-color="#74472f"/></linearGradient><linearGradient id="cabInner" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8b18a"/><stop offset="1" stop-color="#b98658"/></linearGradient></defs>';
+ svg+='<text x="205" y="17" text-anchor="middle" font-size="10" font-weight="700" letter-spacing="1" fill="#79543a">ISOMETRIC CABINET VIEW</text>';
+ // Rear panel is a single panel attached to the back edges of the cabinet.
+ svg+=face("back-panel",[[0,bodyD,0],[W,bodyD,0],[W,bodyD,H],[0,bodyD,H]],"#bd8b5d");
+ // Exterior side walls, each exactly t thick and ending at the inner face of the back panel.
+ svg+=face("left-exterior",[[0,0,0],[0,bodyD,0],[0,bodyD,H],[0,0,H]],"url(#cabSide)");
+ svg+=face("right-exterior",[[W,0,0],[W,bodyD,0],[W,bodyD,H],[W,0,H]],"#8b5635");
+ // Top and bottom panels fit between side walls; their front edges are at y=0.
+ svg+=face("top-panel",[[t,0,H],[t,bodyD,H],[W-t,bodyD,H],[W-t,0,H]],"url(#cabTop)");
+ svg+=face("bottom-visible",[[t,0,0],[t,bodyD,0],[W-t,bodyD,0],[W-t,0,0]],"#b98253");
+ // Inner surfaces clarify the usable opening without inventing a front frame.
+ svg+=face("inside-top",[[t,0,H-t],[t,bodyD,H-t],[W-t,bodyD,H-t],[W-t,0,H-t]],"url(#cabInner)");
+ svg+=face("inside-bottom",[[t,0,t],[t,bodyD,t],[W-t,bodyD,t],[W-t,0,t]],"#b68154");
+ svg+=face("inside-left",[[t,0,t],[t,bodyD,t],[t,bodyD,H-t],[t,0,H-t]],"#c89b70");
+ svg+=face("inside-right",[[W-t,0,t],[W-t,bodyD,t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#a9774f");
+ // Show the actual exposed cut edges of the front-facing panels.
+ svg+=face("left-cut-edge",[[0,0,0],[t,0,0],[t,0,H],[0,0,H]],"#a36d45");
+ svg+=face("right-cut-edge",[[W-t,0,0],[W,0,0],[W,0,H],[W-t,0,H]],"#75472d");
+ svg+=face("top-cut-edge",[[t,0,H-t],[W-t,0,H-t],[W-t,0,H],[t,0,H]],"#e5bd93");
+ svg+=face("bottom-cut-edge",[[t,0,0],[W-t,0,0],[W-t,0,t],[t,0,t]],"#a9754d");
+ // The back panel thickness is shown only at the rear top and right edges.
+ svg+=face("back-top-edge",[[0,bodyD,H],[W,bodyD,H],[W,D,H],[0,D,H]],"#a97750");
+ svg+=face("back-right-edge",[[W,bodyD,0],[W,D,0],[W,D,H],[W,bodyD,H]],"#845131");
  svg+=line("front-left",[0,0,0],[0,0,H])+line("front-right",[W,0,0],[W,0,H])+line("front-top",[0,0,H],[W,0,H])+line("front-bottom",[0,0,0],[W,0,0]);
- svg+='<g fill="#5c3b27" font-size="10" font-weight="600"><text x="180" y="254" text-anchor="middle">Width: '+fmt(W)+' mm</text><text x="12" y="145">Height: '+fmt(H)+' mm</text><text x="265" y="231" text-anchor="middle">Depth: '+fmt(D)+' mm</text></g></svg>';
+ svg+='<g fill="#5c3b27" font-size="10" font-weight="700"><text x="205" y="258" text-anchor="middle">W '+fmt(W)+' mm</text><text x="28" y="138" text-anchor="middle" transform="rotate(-90 28 138)">H '+fmt(H)+' mm</text><text x="325" y="229" text-anchor="middle">D '+fmt(D)+' mm</text></g>';
+ svg+='<text x="205" y="273" text-anchor="middle" font-size="8" fill="#77685c">Open front · top/bottom fit between sides · back adds '+fmt(t)+' mm to depth</text></svg>';
  host.innerHTML=svg;
- if(caption)caption.textContent='Open-front cabinet · outside size '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm. Body depth '+fmt(bodyD)+' mm plus rear panel thickness '+fmt(t)+' mm. Preview updates with the dimensions.';
+ if(caption)caption.textContent='Open-front cabinet · outside size '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm. The top and bottom fit between the side panels; the rear panel covers the back edges and adds '+fmt(t)+' mm to the body depth.';
 }
 function renderPartViews(plan){
  const host=$("partViews");if(!host||!plan||!plan.ok)return;
- const W=plan.input.W,H=plan.input.H,D=plan.input.D,t=plan.input.t,bodyD=D-t;
- const parts=plan.parts;
- const side=parts.find(p=>p.id==="A"),top=parts.find(p=>p.id==="B"),bottom=parts.find(p=>p.id==="C"),back=parts.find(p=>p.id==="D");
- if(!side||!top||!bottom||!back){host.innerHTML="<p>Exploded view is unavailable for this plan.</p>";return;}
- // Explode by a visible gap based on the overall furniture dimensions, not just material thickness.
- // This keeps the pieces visibly separate even when cardboard is very thin.
- const gapX=Math.max(8,W*.14),gapZ=Math.max(8,H*.14),gapY=Math.max(8,D*.35);
- const sc=Math.min(245/(W+D*.48+gapX*.7),160/(H+D*.28+gapZ*1.3),2.1);
- const ox=220,oy=242,kx=.48,ky=.28;
- const P=(x,y,z)=>[ox+(x-W/2)*sc+(y-D/2)*sc*kx,oy-z*sc-(y-D/2)*sc*ky];
+ const {W,H,D,t}=plan.input,bodyD=D-t,parts=plan.parts;
+ if(!["A","B","C","D"].every(id=>parts.some(p=>p.id===id))){host.innerHTML="<p>Exploded view is unavailable for this plan.</p>";return;}
+ // Exploded offsets move components along the same x/y/z axes used by the assembled preview.
+ const gapX=Math.max(7,W*.13),gapZ=Math.max(7,H*.12),gapY=Math.max(7,D*.28),kx=.48,ky=.28;
+ const scale=Math.min(205/(W+2*gapX+D*kx+12),160/(H+2*gapZ+D*ky+10),2.4);
+ const P=(x,y,z)=>[210+(x-W/2)*scale+(y-D/2)*scale*kx,228-z*scale-(y-D/2)*scale*ky];
  const pt=a=>a.map(v=>{const q=P(...v);return q[0].toFixed(1)+","+q[1].toFixed(1)}).join(" ");
- const poly=(id,arr,fill)=>'<polygon data-exploded-part="'+id+'" points="'+pt(arr)+'" fill="'+fill+'" stroke="#654126" stroke-width="1.4" stroke-linejoin="round"/>';
- const line=(a,b)=>{const A=P(...a),B=P(...b);return '<line data-guide="true" x1="'+A[0]+'" y1="'+A[1]+'" x2="'+B[0]+'" y2="'+B[1]+'" stroke="#92704f" stroke-width="1.3" stroke-dasharray="4 4"/>';};
+ const poly=(id,arr,fill)=>'<polygon data-exploded-part="'+id+'" points="'+pt(arr)+'" fill="'+fill+'" stroke="#67452f" stroke-width="1" stroke-linejoin="round"/>';
+ const edge=(a,b)=>{const A=P(...a),B=P(...b);return '<line data-guide="true" x1="'+A[0]+'" y1="'+A[1]+'" x2="'+B[0]+'" y2="'+B[1]+'" stroke="#8e7158" stroke-width="1" stroke-dasharray="3 3"/>';};
  const slab=(id,x,y,z,w,d,h,front,topFill,sideFill)=>{
   const v000=[x,y,z],v100=[x+w,y,z],v110=[x+w,y+d,z],v010=[x,y+d,z];
   const v001=[x,y,z+h],v101=[x+w,y,z+h],v111=[x+w,y+d,z+h],v011=[x,y+d,z+h];
   return poly(id+"-top",[v001,v101,v111,v011],topFill)+poly(id+"-side",[v101,v100,v110,v111],sideFill)+poly(id+"-front",[v000,v100,v101,v001],front);
  };
- let svg='<svg viewBox="0 0 440 390" role="img" aria-label="Exploded cabinet assembly diagram with visibly separated side panels, top, bottom and rear panel" data-exploded-gap-x="'+fmt(gapX)+'" data-exploded-gap-y="'+fmt(gapY)+'" data-exploded-gap-z="'+fmt(gapZ)+'">';
- svg+='<text x="220" y="20" text-anchor="middle" font-size="14" font-weight="700" fill="#5c3b27">EXPLODED ASSEMBLY · PARTS SPREAD APART</text>';
- // Back is moved rearward; its real thickness remains t.
- svg+=slab("D",0,bodyD+gapY,0,W,t,H,"#c59a70","#d7b18c","#9b6843");
- // Top and bottom are moved vertically; their cut sizes still come from the canonical parts list.
- svg+=slab("C",t,0,-gapZ-t,W-2*t,bodyD,t,"#c08d60","#d5a579","#8f5c38");
- svg+=slab("B",t,0,H+gapZ,W-2*t,bodyD,t,"#d6ad83","#e4c29f","#9b6843");
- // Side panels are moved outward by a clearly visible design-scaled gap.
+ let svg='<svg viewBox="0 0 420 300" role="img" aria-label="Exploded isometric cabinet assembly with separate side panels, top, bottom and rear panel" data-exploded-gap-x="'+fmt(gapX)+'" data-exploded-gap-y="'+fmt(gapY)+'" data-exploded-gap-z="'+fmt(gapZ)+'">';
+ svg+='<defs><linearGradient id="expTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#efd2ae"/><stop offset="1" stop-color="#c99361"/></linearGradient></defs>';
+ svg+='<text x="210" y="16" text-anchor="middle" font-size="10" font-weight="700" letter-spacing=".7" fill="#79543a">EXPLODED ASSEMBLY · SAME PART GEOMETRY</text>';
+ // Parts are separated only for visibility; their actual dimensions and thickness are unchanged.
+ svg+=slab("D-back",0,bodyD+gapY,0,W,t,H,"#bd8b5d","#d7b18c","#9b6843");
+ svg+=slab("C-bottom",t,0,-gapZ-t,W-2*t,bodyD,t,"#b98253","#d5a579","#8f5c38");
+ svg+=slab("B-top",t,0,H+gapZ,W-2*t,bodyD,t,"#d6ad83","url(#expTop)","#9b6843");
  svg+=slab("A-left",-gapX-t,0,0,t,bodyD,H,"#a56f46","#c08d60","#75482d");
  svg+=slab("A-right",W+gapX,0,0,t,bodyD,H,"#a56f46","#c08d60","#75482d");
- // Dashed guides show the intended fitted positions, not the exploded positions.
- svg+=line([0,0,0],[0,0,H])+line([W,0,0],[W,0,H]);
- svg+=line([t,0,H-t],[W-t,0,H-t])+line([t,0,t],[W-t,0,t]);
- svg+=line([0,bodyD,0],[0,bodyD,H])+line([W,bodyD,0],[W,bodyD,H]);
- svg+='<g font-size="12" font-weight="700" fill="#5c3b27">';
- const labels=[
-  {p:[-gapX-t,0,H*.55],x:58,y:142,a:"A · SIDE × 2"},
-  {p:[W+gapX,0,H*.55],x:382,y:142,a:"A · SIDE × 2"},
-  {p:[W/2,0,H+gapZ+t],x:190,y:52,a:"B · TOP × 1"},
-  {p:[W/2,0,-gapZ],x:220,y:356,a:"C · BOTTOM × 1"},
-  {p:[W/2,bodyD+gapY,H],x:350,y:58,a:"D · BACK × 1"}];
- labels.forEach(l=>{const q=P(...l.p);svg+='<path d="M'+q[0].toFixed(1)+' '+q[1].toFixed(1)+' L'+l.x+' '+l.y+'" stroke="#92704f" stroke-width="1.2" fill="none"/><text x="'+l.x+'" y="'+(l.y-5)+'" text-anchor="middle">'+l.a+'</text>';});
- svg+='</g><text x="220" y="380" text-anchor="middle" font-size="10" fill="#77685c">Spacing is exaggerated for clarity. Use exact cut dimensions below.</text></svg>';
- const notes={A:"Cut two identical side walls. These stand vertically on the left and right.",B:"The top fits between the side walls. Align its front edge with the side fronts.",C:"The bottom fits between the side walls. Align its front edge with the side fronts.",D:"The back covers the rear edges. Its thickness adds to the cabinet's outside depth."};
+ // Fine dashed projection lines indicate where the pieces return in the assembled cabinet.
+ svg+=edge([0,0,0],[0,0,H])+edge([W,0,0],[W,0,H])+edge([t,0,H-t],[W-t,0,H-t])+edge([t,0,t],[W-t,0,t]);
+ svg+=edge([0,bodyD,0],[0,bodyD,H])+edge([W,bodyD,0],[W,bodyD,H]);
+ // Direct labels use fixed safe margins; component letters match the cut list.
+ svg+='<g font-size="9" font-weight="700" fill="#5c3b27">';
+ svg+='<text x="18" y="82">A · LEFT SIDE</text><path d="M80 84 L'+P(-gapX-t,0,H*.55).map(n=>n.toFixed(1)).join(" ")+'" stroke="#92704f" fill="none"/>';
+ svg+='<text x="402" y="82" text-anchor="end">A · RIGHT SIDE</text><path d="M340 84 L'+P(W+gapX,0,H*.55).map(n=>n.toFixed(1)).join(" ")+'" stroke="#92704f" fill="none"/>';
+ svg+='<text x="210" y="37" text-anchor="middle">B · TOP × 1</text><text x="210" y="282" text-anchor="middle">C · BOTTOM × 1</text><text x="350" y="38" text-anchor="middle">D · BACK × 1</text></g>';
+ svg+='<text x="210" y="296" text-anchor="middle" font-size="7.5" fill="#77685c">Exploded spacing is illustrative; use the cut list for exact sizes.</text></svg>';
+ const notes={A:"Cut two identical side walls. They define the cabinet height and depth and support the top and bottom panels.",B:"The top spans between the two side walls. Its width is W − 2t; its depth is D − t because the rear panel sits behind the cabinet body.",C:"The bottom fits between the side walls, with its front edge aligned to the cabinet front.",D:"The rear panel covers the rear edges of the side, top and bottom panels. Its thickness adds to the outside depth."};
  const cards=parts.map(p=>'<article class="part-view-card" data-part-card="'+p.id+'"><div class="part-view-copy"><h3>Part '+p.id+' — '+p.name+'</h3><p><strong>Cut '+p.qty+'</strong> · '+fmt(p.width)+' × '+fmt(p.height)+' mm</p><p>Material thickness: '+fmt(t)+' mm</p><p>'+notes[p.id]+'</p></div></article>').join("");
- host.innerHTML='<button type="button" class="diagram-zoom" id="openDiagramModal" aria-label="Open enlarged exploded cabinet diagram"><div class="exploded-diagram">'+svg+'</div></button><p class="diagram-hint">Tap the diagram to open an enlarged view.</p><div class="part-view-list">'+cards+'</div><p class="muted">Read the exploded diagram first, then follow the matching letter and cut size. Dashed lines show intended assembly positions. The extra spacing is only for visibility and does not change calculated dimensions.</p>';
+ host.innerHTML='<button type="button" class="diagram-zoom" id="openDiagramModal" aria-label="Open enlarged exploded cabinet diagram"><div class="exploded-diagram">'+svg+'</div></button><p class="diagram-hint">Tap the diagram to inspect the separated parts at a larger size.</p><div class="part-view-list">'+cards+'</div><p class="muted">The dashed lines indicate where panels return in the assembled cabinet. The gaps are exaggerated for visibility only; they do not change the cutting dimensions.</p>';
 }
 
 function openExplodedModal(){const source=document.querySelector("#partViews .exploded-diagram svg"),modal=document.getElementById("diagramModal"),target=document.getElementById("diagramModalContent");if(!source||!modal||!target)return;target.innerHTML=source.outerHTML;modal.setAttribute("open","");document.getElementById("closeDiagramModal").focus();}
