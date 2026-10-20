@@ -26,7 +26,7 @@ table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left
 .steps{padding-left:22px;margin:0}.steps li{padding:0 0 12px 4px}.steps li:last-child{padding-bottom:0}.stepnum{font-weight:800;color:var(--green)}
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 @media(min-width:680px){.fields{grid-template-columns:repeat(4,minmax(0,1fr))}.piece-list{grid-template-columns:repeat(3,minmax(0,1fr))}main{padding-top:24px}}
-@media print{body{background:#fff;font-size:11pt}header{background:#fff;color:#173f35;padding:0 0 12px;border-radius:0}header p{color:#333}.eyebrow{color:#276653}main{padding:0}.panel{box-shadow:none;border:1px solid #bbb;break-inside:avoid;padding:12px;margin-bottom:10px}.actions,.no-print,footer{display:none!important}.piece{break-inside:avoid}.piece-list{grid-template-columns:repeat(3,1fr)}.notice{break-inside:avoid}h1{font-size:24pt}}
+@media print{body{background:#fff;color:#111;font-size:11pt}header{background:#fff;color:#111;padding:0 0 12px;border-radius:0;border-bottom:2px solid #111}header p{color:#333}.eyebrow{color:#111}main{padding:0}.panel{background:#fff;box-shadow:none;border:1px solid #999;break-inside:avoid;padding:12px;margin-bottom:10px}h2,h3{color:#111}.actions,.no-print,footer{display:none!important}.piece{background:#fff;break-inside:avoid;border:1px solid #aaa}.piece-list{grid-template-columns:repeat(2,minmax(0,1fr))}.piece svg{max-width:100%}.notice{background:#fff;border:1px solid #777;break-inside:avoid}h1{font-size:24pt}th,td{border-color:#bbb}.stat{background:#fff;border:1px solid #bbb}.stat strong{color:#111}.muted,.qty,.hint{color:#333}}
 </style>
 </head>
 <body>
@@ -53,7 +53,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 </section>
 <section class="panel" id="patterns">
 <h2>3. Cutting patterns</h2>
-<p class="muted">Each outline is intended to print at its labelled physical size. In the print dialog, choose <strong>100% / Actual size</strong> and turn off “Fit to page” if that option appears. The browser may split very large patterns across pages.</p>
+<p class="muted">White-paper blueprint style: black cutting outlines, dimension marks, and labels. The rectangle itself is the cut piece; dimension annotations sit outside its edge. In the print dialog, choose <strong>100% / Actual size</strong> and turn off “Fit to page” if that option appears. The browser may split very large patterns across pages.</p>
 <div class="piece-list" id="pieceList"></div>
 </section>
 <section class="panel" id="guide">
@@ -76,7 +76,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 const $=id=>document.getElementById(id);
 const fmt=n=>Number(n.toFixed(2)).toString();
 let currentPlan=null;
-function rectSvg(w,h,label){const safeW=Math.max(w,1),safeH=Math.max(h,1);return '<svg xmlns="http://www.w3.org/2000/svg" width="'+safeW+'mm" height="'+safeH+'mm" viewBox="0 0 '+safeW+' '+safeH+'" role="img" aria-label="'+label+' pattern"><rect x="0.25" y="0.25" width="'+Math.max(0,safeW-.5)+'" height="'+Math.max(0,safeH-.5)+'" fill="#e8f3ed" stroke="#276653" stroke-width=".5"/></svg>'}
+function rectSvg(w,h,label){const safeW=Math.max(w,1),safeH=Math.max(h,1),pad=8,viewW=safeW+pad*2,viewH=safeH+pad*2;return '<svg xmlns="http://www.w3.org/2000/svg" width="'+viewW+'mm" height="'+viewH+'mm" viewBox="0 0 '+viewW+' '+viewH+'" role="img" aria-label="'+label+' cutting pattern, '+fmt(safeW)+' by '+fmt(safeH)+' millimetres"><rect x="'+pad+'" y="'+pad+'" width="'+safeW+'" height="'+safeH+'" fill="#fff" stroke="#111" stroke-width=".45"/><g stroke="#111" fill="none" stroke-width=".25"><path d="M'+pad+' 3 V6 M'+(pad+safeW)+' 3 V6 M'+pad+' 4.5 H'+(pad+safeW)+' M3 '+pad+' H6 M3 '+(pad+safeH)+' H6 M4.5 '+pad+' V'+(pad+safeH)+'"/></g><g fill="#111" font-size="3" font-family="Arial,sans-serif"><text x="'+(pad+safeW/2)+'" y="3.2" text-anchor="middle">'+fmt(safeW)+' mm</text><text x="2.5" y="'+(pad+safeH/2)+'" text-anchor="middle" transform="rotate(-90 2.5 '+(pad+safeH/2)+')">'+fmt(safeH)+' mm</text></g></svg>'}
 function render(){
 const W=Number($('width').value),H=Number($('height').value),D=Number($('depth').value),t=Number($('thickness').value);
 const err=$('error');err.textContent='';
