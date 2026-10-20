@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#173f35">
+<title>Miniature Furniture Planner</title>
+<style>
+:root{--ink:#173f35;--green:#276653;--mint:#e8f3ed;--cream:#fbf8f0;--gold:#efb95b;--muted:#65746c;--line:#d9e3dc;--white:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:#20342c;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:var(--ink);color:white;padding:25px 18px 28px;border-radius:0 0 25px 25px}
+.wrap{max-width:900px;margin:auto} .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:.72rem;font-weight:800;color:var(--gold)}
+h1{font-size:clamp(1.8rem,7vw,3rem);line-height:1.08;margin:8px 0 12px;letter-spacing:-.04em}header p{max-width:610px;margin:0;color:#e1ece6}
+main{padding:18px 14px 48px}.panel{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:18px;margin:0 0 15px;box-shadow:0 5px 18px #173f3508}
+h2{font-size:1.15rem;margin:0 0 12px;color:var(--ink)}h3{font-size:1rem;margin:0 0 7px;color:var(--ink)}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.field label{display:block;font-size:.83rem;font-weight:750;margin-bottom:5px}
+input,select{width:100%;padding:12px;border:1px solid #bdcec3;border-radius:11px;background:#fff;color:#20342c;font:inherit;min-width:0}
+small,.muted{color:var(--muted)}.hint{font-size:.82rem;margin:10px 0 0;color:var(--muted)}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}
+button{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer}
+.primary{background:var(--ink);color:white}.secondary{background:var(--mint);color:var(--ink)}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.notice{background:#fff5df;border-left:4px solid var(--gold);padding:12px 14px;border-radius:8px;font-size:.9rem;margin:0 0 15px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}.stat{background:var(--mint);border-radius:12px;padding:11px}.stat strong{display:block;font-size:1.15rem;color:var(--ink)}.stat span{font-size:.75rem;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left;padding:10px 7px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.04em}
+.piece-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.piece{border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}.piece svg{display:block;max-width:100%;height:auto;margin:8px auto 0}.piece .dims{font-weight:750}.piece .qty{color:var(--muted);font-size:.83rem}
+.steps{padding-left:22px;margin:0}.steps li{padding:0 0 12px 4px}.steps li:last-child{padding-bottom:0}.stepnum{font-weight:800;color:var(--green)}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
+@media(min-width:680px){.fields{grid-template-columns:repeat(4,minmax(0,1fr))}.piece-list{grid-template-columns:repeat(3,minmax(0,1fr))}main{padding-top:24px}}
+@media print{body{background:#fff;font-size:11pt}header{background:#fff;color:#173f35;padding:0 0 12px;border-radius:0}header p{color:#333}.eyebrow{color:#276653}main{padding:0}.panel{box-shadow:none;border:1px solid #bbb;break-inside:avoid;padding:12px;margin-bottom:10px}.actions,.no-print,footer{display:none!important}.piece{break-inside:avoid}.piece-list{grid-template-columns:repeat(3,1fr)}.notice{break-inside:avoid}h1{font-size:24pt}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div class="eyebrow">Build it to your size</div><h1>Miniature Furniture Planner</h1><p>Make a custom cutting list and beginner-friendly build guide for a small cardboard bedside cabinet. Start with your measurements, then print or save your plan.</p></div></header>
+<main class="wrap">
+<div class="notice"><strong>Prototype note:</strong> This is the first working planning version. The pattern calculations have not yet been physically tested with your cardboard. Make a paper test first and check the fit before cutting your final material.</div>
+<section class="panel no-print">
+<h2>1. Set your cabinet dimensions</h2>
+<div class="fields">
+<div class="field"><label for="width">Outside width (mm)</label><input id="width" type="number" min="10" max="500" step="1" value="36"></div>
+<div class="field"><label for="height">Outside height (mm)</label><input id="height" type="number" min="10" max="500" step="1" value="45"></div>
+<div class="field"><label for="depth">Outside depth (mm)</label><input id="depth" type="number" min="5" max="500" step="1" value="27"></div>
+<div class="field"><label for="thickness">Cardboard thickness (mm)</label><input id="thickness" type="number" min="0.2" max="10" step="0.1" value="1"></div>
+</div>
+<p class="hint">Measurements are the finished miniature's outside dimensions. Use a ruler or caliper if possible. This first design is an open-front cabinet without a door or drawer.</p>
+<div class="actions"><button class="primary" id="generate">Update my plan</button><button class="secondary" id="print">Print / Save as PDF</button><button class="secondary" id="download">Save plan as text</button></div>
+<p id="error" role="alert" style="color:#a12b2b;font-weight:700;margin-bottom:0"></p>
+</section>
+<section class="panel" id="summary">
+<h2>2. Your cabinet plan</h2>
+<div class="stats"><div class="stat"><strong id="sizeLabel">36 × 45 × 27</strong><span>Width × height × depth (mm)</span></div><div class="stat"><strong id="pieceCount">5 panels</strong><span>Individual pieces to cut</span></div><div class="stat"><strong id="materialLabel">1 mm</strong><span>Material thickness</span></div></div>
+<p id="designNote">Open-front bedside cabinet with two side panels, a top, a bottom, and a back.</p>
+<div style="overflow-x:auto"><table><thead><tr><th>Part</th><th>Qty</th><th>Cut size (mm)</th><th>Purpose</th></tr></thead><tbody id="cutRows"></tbody></table></div>
+</section>
+<section class="panel" id="patterns">
+<h2>3. Cutting patterns</h2>
+<p class="muted">Each outline is intended to print at its labelled physical size. In the print dialog, choose <strong>100% / Actual size</strong> and turn off “Fit to page” if that option appears. The browser may split very large patterns across pages.</p>
+<div class="piece-list" id="pieceList"></div>
+</section>
+<section class="panel" id="guide">
+<h2>4. Step-by-step assembly guide</h2>
+<ol class="steps" id="stepsList"></ol>
+</section>
+<section class="panel">
+<h2>5. Before you cut your final cardboard</h2>
+<ul style="padding-left:20px;margin-bottom:0">
+<li>Check that your cardboard thickness is reasonably even.</li>
+<li>Print a paper test at 100% and measure one rectangle with a ruler.</li>
+<li>Cut slowly with a ruler and a suitable craft knife or scissors; keep fingers clear of the cutting path. Ask an adult for help if needed.</li>
+<li>Dry-fit the parts before applying glue. If the joints do not sit square, pause and adjust the plan rather than forcing them.</li>
+<li>Allow glue to dry fully, then check the outside width, height and depth.</li>
+</ul>
+</section>
+</main>
+<footer>Miniature Furniture Planner · Early prototype · No account or payment needed to test this version.</footer>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n.toFixed(2)).toString();
+let currentPlan=null;
+function rectSvg(w,h,label){const safeW=Math.max(w,1),safeH=Math.max(h,1);return '<svg xmlns="http://www.w3.org/2000/svg" width="'+safeW+'mm" height="'+safeH+'mm" viewBox="0 0 '+safeW+' '+safeH+'" role="img" aria-label="'+label+' pattern"><rect x="0.25" y="0.25" width="'+Math.max(0,safeW-.5)+'" height="'+Math.max(0,safeH-.5)+'" fill="#e8f3ed" stroke="#276653" stroke-width=".5"/></svg>'}
+function render(){
+const W=Number($('width').value),H=Number($('height').value),D=Number($('depth').value),t=Number($('thickness').value);
+const err=$('error');err.textContent='';
+if(![W,H,D,t].every(Number.isFinite)||W<=0||H<=0||D<=0||t<=0){err.textContent='Enter positive numbers for all four measurements.';return}
+if(W>500||H>500||D>500||W<10||H<10||D<5||t>10||t<.2){err.textContent='For this prototype, use width and height 10–500 mm, depth 5–500 mm, and thickness 0.2–10 mm.';return}
+if(W<=2*t||D<=t){err.textContent='These measurements are too small for this thickness. Width must be greater than twice the thickness, and depth must be greater than the thickness.';return}
+const sideD=D-t,insideW=W-2*t;
+const parts=[
+{name:'Side panels',qty:2,w:sideD,h:H,purpose:'Left and right walls'},
+{name:'Top panel',qty:1,w:sideD,h:insideW,purpose:'Top, fitted between the side walls'},
+{name:'Bottom panel',qty:1,w:sideD,h:insideW,purpose:'Bottom, fitted between the side walls'},
+{name:'Back panel',qty:1,w:W,h:H,purpose:'Rear panel, attached to the back edges'}
+];
+// For top/bottom, show dimensions as width × depth in the table, even though SVG orientation can rotate.
+parts[1].w=insideW;parts[1].h=sideD;parts[2].w=insideW;parts[2].h=sideD;
+$('sizeLabel').textContent=fmt(W)+' × '+fmt(H)+' × '+fmt(D);
+$('pieceCount').textContent='5 panels';
+$('materialLabel').textContent=fmt(t)+' mm';
+$('designNote').textContent='Open-front cabinet. Side panels are shortened by the back thickness; top and bottom fit between the side panels. The back panel is attached to the rear edges.';
+$('cutRows').innerHTML=parts.map(p=>'<tr><td>'+p.name+'</td><td>'+p.qty+'</td><td>'+fmt(p.w)+' × '+fmt(p.h)+'</td><td>'+p.purpose+'</td></tr>').join('');
+$('pieceList').innerHTML=parts.map((p,i)=>'<article class="piece"><h3>'+p.name+'</h3><div class="qty">Cut '+p.qty+' · rectangle</div><div class="dims">'+fmt(p.w)+' × '+fmt(p.h)+' mm</div>'+rectSvg(p.w,p.h,p.name)+'</article>').join('');
+const steps=[
+'Mark and label every rectangle from the cutting list. Keep the grain or corrugation direction consistent where possible.',
+'Cut the two side panels carefully. Put the pieces together and check that they match.',
+'Place the top panel between the two side panels at the top. Dry-fit first, then apply a thin line of glue to the joining edges.',
+'Repeat with the bottom panel, keeping it level and making the front edges line up. Use a small square or folded paper corner to check the cabinet is not twisted.',
+'Place the back panel against the rear edges. Check the cabinet is square, then glue the back in place to help hold the shape.',
+'Leave the cabinet supported on a flat surface until the glue has fully dried. Re-measure the outside width, height and depth.',
+'Optional: cover exposed edges with thin paper strips, let them dry, then paint or decorate. Add a door, drawer or shelf only after this basic body fits correctly.'
+];
+$('stepsList').innerHTML=steps.map((s,i)=>'<li><span class="stepnum">Step '+(i+1)+':</span> '+s+'</li>').join('');
+currentPlan={W,H,D,t,parts,steps};
+}
+$('generate').addEventListener('click',render);
+['width','height','depth','thickness'].forEach(id=>$(id).addEventListener('change',render));
+$('print').addEventListener('click',()=>{render();if(!$('error').textContent)window.print()});
+$('download').addEventListener('click',()=>{render();if($('error').textContent)return;const p=currentPlan;const lines=['MINIATURE FURNITURE PLANNER — BEDSIDE CABINET','Prototype plan — physically test before final cutting','Outside size: '+fmt(p.W)+' W × '+fmt(p.H)+' H × '+fmt(p.D)+' D mm','Material thickness: '+fmt(p.t)+' mm','','CUT LIST','Part | Qty | Size (mm)'];p.parts.forEach(x=>lines.push(x.name+' | '+x.qty+' | '+fmt(x.w)+' × '+fmt(x.h)));lines.push('','ASSEMBLY STEPS');p.steps.forEach((s,i)=>lines.push((i+1)+'. '+s));lines.push('','Safety: use a ruler, cut away from fingers, and ask for help if needed.','Print at 100% / Actual size if printing patterns.');const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='miniature-bedside-cabinet-plan.txt';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)});
+render();
+</script>
+</body>
+</html>
