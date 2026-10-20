@@ -40,7 +40,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 <div class="field"><label for="width">Outside width (mm)</label><input id="width" type="number" min="10" max="500" step="1" value="36"></div>
 <div class="field"><label for="height">Outside height (mm)</label><input id="height" type="number" min="10" max="500" step="1" value="45"></div>
 <div class="field"><label for="depth">Outside depth (mm)</label><input id="depth" type="number" min="5" max="500" step="1" value="27"></div>
-<div class="field"><label for="thickness">Cardboard thickness (mm)</label><input id="thickness" type="number" min="0.2" max="10" step="0.1" value="1"></div>
+<div class="field"><label for="thickness">Cardboard thickness (mm)</label><input id="thickness" type="number" min="0.2" max="10" step="0.1" value="1"></div><div class="field"><label for="supportStyle">Cabinet support style</label><select id="supportStyle"><option value="four-legs">Four separate corner legs</option><option value="side-panels">Two full side panels act as legs</option></select></div>
 </div>
 <p class="hint">Measurements are the finished miniature's outside dimensions. Use a ruler or caliper if possible. The basic cabinet planner above is open-front; the separate nightstand generator below adds a drawer and support structure.</p>
 <div class="actions"><button class="primary" id="generate">Update my plan</button><button class="secondary" id="print">Print / Save as PDF</button><button class="secondary" id="download">Save plan as text</button></div>
@@ -48,7 +48,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 </section>
 <section class="panel" id="preview"><h2>2. 3D-style design preview</h2><p class="muted">A proportional illustration generated from the same dimensions used by the cutting list. This is a visual preview, not a print-scale template.</p><div id="cabinetPreview" class="preview-stage" aria-live="polite"></div><div class="preview-legend"><span><i class="legend-top"></i> Top</span><span><i class="legend-side"></i> Side</span><span><i class="legend-back"></i> Rear panel</span></div><p id="previewCaption" class="hint">The preview updates when you generate a new plan.</p></section>
 <section class="panel" id="partViewsSection"><h2>3. Individual panel views</h2><p class="muted">Warm brown views of each panel update when you change the cabinet dimensions. These are explanatory illustrations, not print-scale cutting templates.</p><div id="partViews" class="part-view-list"></div></section>
-<section class="panel" id="nightstandConcept"><h2>4. Nightstand generator</h2><p class="muted">Create a custom nightstand with four legs, a top, support rails, a lower shelf and a drawer. The assembled view, exploded construction, dimensioned views and cut list are generated from the measurements and material thickness above. Check the ideal clearances and test a sample with your actual cardboard before final cutting.</p><div class="actions no-print"><button class="secondary" id="generateNightstand">Generate nightstand</button></div><p id="nightstandStatus" class="hint" aria-live="polite">Generate the nightstand from your current dimensions and material thickness.</p><div id="nightstandPreview" class="preview-stage"></div><div id="nightstandParts" class="nightstand-parts" style="margin-top:12px"></div></section><section class="panel" id="summary">
+<section class="panel" id="nightstandConcept"><h2>4. Nightstand generator</h2><p class="muted">Create a custom nightstand with either four separate corner legs or two full side panels that act as the legs, plus a top, support rails, a lower shelf and a drawer. The assembled view, exploded construction, dimensioned views and cut list are generated from the measurements and material thickness above. Check the ideal clearances and test a sample with your actual cardboard before final cutting.</p><div class="actions no-print"><button class="secondary" id="generateNightstand">Generate nightstand</button></div><p id="nightstandStatus" class="hint" aria-live="polite">Generate the nightstand from your current dimensions and material thickness.</p><div id="nightstandPreview" class="preview-stage"></div><div id="nightstandParts" class="nightstand-parts" style="margin-top:12px"></div></section><section class="panel" id="summary">
 <h2>2. Your cabinet plan</h2>
 <div class="stats"><div class="stat"><strong id="sizeLabel">36 × 45 × 27</strong><span>Width × height × depth (mm)</span></div><div class="stat"><strong id="pieceCount">5 panels</strong><span>Individual pieces to cut</span></div><div class="stat"><strong id="materialLabel">1 mm</strong><span>Material thickness</span></div></div>
 <p id="designNote">Open-front bedside cabinet with two side panels, a top, a bottom, and a back.</p>
@@ -499,12 +499,12 @@ function generateNightstandConcept(input){
  const error=validateCabinetInput(input);
  if(error)return {ok:false,error};
  const {W,H,D,t}=input;
- // Construction convention: four square legs support a full-size top. Shelf and rails fit
- // between legs. Drawer face fits between front legs; the drawer box sits behind the face.
- const leg=Math.max(2*t,Math.min(W,D)*0.10);
+ // Two supported construction styles: four corner posts, or two full-depth side panels.
+ const supportStyle=input.supportStyle||"four-legs";
+ const leg=supportStyle==="side-panels"?t:Math.max(2*t,Math.min(W,D)*0.10);
  const railH=Math.max(2*t,H*0.10);
  const clearance=Math.max(0.5*t,0.5);
- const innerW=W-2*leg, innerD=D-2*leg;
+ const innerW=W-2*leg, innerD=supportStyle==="side-panels"?D-2*t:D-2*leg;
  const shelfW=innerW, shelfD=innerD, shelfZ=H*0.28;
  const zRail=H-t-railH;
  const drawerW=innerW-2*clearance;
@@ -524,12 +524,12 @@ function generateNightstandConcept(input){
   return {ok:false,error:"These dimensions are too small for this nightstand layout. Increase the width, height or depth, or use thinner material."};
  }
  const parts=[
-  {id:"L",name:"Corner legs",qty:4,a:leg,b:leg,c:legH,role:"Four equal supports; the top panel rests on their upper ends."},
+  ...(supportStyle==="side-panels"?[{id:"SP",name:"Full-height side supports",qty:2,a:D,b:legH,c:t,role:"Two full-depth side panels form the left and right cabinet sides and support the top."}]:[{id:"L",name:"Corner legs",qty:4,a:leg,b:leg,c:legH,role:"Four equal corner posts support the tabletop; rails and shelf fit between them."}]),
   {id:"T",name:"Top panel",qty:1,a:W,b:D,c:t,role:"Full outside width and depth; sits on the four legs."},
   {id:"S",name:"Lower shelf",qty:1,a:shelfW,b:shelfD,c:t,role:"Fits between the four legs at the calculated shelf elevation."},
   {id:"RF",name:"Front rail / apron",qty:1,a:innerW,b:railH,c:t,role:"Fits between the front legs directly below the top."},
   {id:"RB",name:"Rear rail / apron",qty:1,a:innerW,b:railH,c:t,role:"Fits between the rear legs directly below the top."},
-  {id:"RL/RR",name:"Side rails / aprons",qty:2,a:innerD,b:railH,c:t,role:"Fit between the front and rear legs directly below the top."},
+  ...(supportStyle==="side-panels"?[]:[{id:"RL/RR",name:"Side rails / aprons",qty:2,a:innerD,b:railH,c:t,role:"Fit between the front and rear legs directly below the top."}]),
   {id:"DF",name:"Drawer front",qty:1,a:drawerW,b:drawerH,c:t,role:"Front face; calculated side clearance separates it from both front legs."},
   {id:"DS",name:"Drawer sides",qty:2,a:drawerBoxDepth,b:drawerSideH,c:t,role:"Two sides behind the face; depth is limited by the inside space."},
   {id:"DB",name:"Drawer back",qty:1,a:drawerBoxInnerW,b:drawerSideH,c:t,role:"Fits between the drawer sides at the rear of the box."},
@@ -538,6 +538,7 @@ function generateNightstandConcept(input){
  if(parts.some(p=>![p.a,p.b,p.c].every(Number.isFinite)||p.a<=0||p.b<=0||p.c<=0))
   return {ok:false,error:"At least one calculated panel size is not positive. Change the measurements."};
  const checks={
+  supportStyle,
   outsideWidth:2*leg+innerW,
   outsideHeight:legH+t,
   outsideDepth:2*leg+innerD,
@@ -551,12 +552,12 @@ function generateNightstandConcept(input){
   drawerBoxWidthConsistent:Math.abs(drawerBoxInnerW+4*t-drawerW)<1e-8
  };
  if(!Object.values(checks).every(Boolean))return {ok:false,error:"The nightstand geometry audit failed. Please adjust the dimensions."};
- return {ok:true,input,leg,legH,railH,clearance,innerW,innerD,shelfW,shelfD,shelfZ,zRail,drawerW,drawerH,drawerZ,drawerD:drawerBoxDepth,drawerBoxOuterW,drawerBoxInnerW,drawerBoxDepth,drawerSideH,drawerBottomDepth,parts,checks,
+ return {ok:true,input,supportStyle,leg,legH,railH,clearance,innerW,innerD,shelfW,shelfD,shelfZ,zRail,drawerW,drawerH,drawerZ,drawerD:drawerBoxDepth,drawerBoxOuterW,drawerBoxInnerW,drawerBoxDepth,drawerSideH,drawerBottomDepth,parts,checks,
   warning:"Dimensional checks passed for ideal geometry. Cardboard compression, cut accuracy, glue thickness and drawer movement still require a physical test."};
 }
 function renderNightstandConcept(){
  const status=$("nightstandStatus"),preview=$("nightstandPreview"),list=$("nightstandParts");
- const input={W:Number($("width").value),H:Number($("height").value),D:Number($("depth").value),t:Number($("thickness").value)};
+ const input={W:Number($("width").value),H:Number($("height").value),D:Number($("depth").value),t:Number($("thickness").value),supportStyle:$("supportStyle")?.value||"four-legs"};
  const r=generateNightstandConcept(input);
  if(!r.ok){status.textContent=r.error;preview.innerHTML="";list.innerHTML="";return;}
  const {W,H,D,t}=input,{leg,legH,railH,shelfW,shelfD,shelfZ,drawerW,drawerH,drawerZ,drawerBoxInnerW,drawerBoxDepth,drawerSideH,drawerBottomDepth,clearance,innerW,innerD,zRail}=r;
@@ -622,7 +623,7 @@ function renderNightstandConcept(){
   return '<svg viewBox="0 0 440 285" role="img" aria-label="Dimensioned front side and top views of nightstand"><defs><marker id="nsArrow" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto-start-reverse"><path d="M0 0 L5 2.5 L0 5 Z" fill="'+colors.gap+'"/></marker></defs><text x="220" y="15" text-anchor="middle" font-size="12" font-weight="700" fill="'+colors.ink+'">DIMENSIONED ORTHOGRAPHIC VIEWS</text><g fill="none" stroke="'+colors.ink+'" stroke-width="1.4"><rect x="'+fx+'" y="'+fy+'" width="'+fw+'" height="'+fh+'"/><rect x="'+sx+'" y="'+fy+'" width="'+sw+'" height="'+fh+'"/><rect x="40" y="'+topY+'" width="'+fw+'" height="55"/></g><g stroke="'+colors.line+'" fill="'+colors.light+'"><rect x="'+fx+'" y="'+(fy+fh*.78)+'" width="'+fw+'" height="'+(fh*.08)+'"/><rect x="'+fx+'" y="'+(fy+fh*.30)+'" width="'+fw+'" height="'+(fh*.22)+'" fill="'+colors.wood+'"/><rect x="40" y="'+(topY+20)+'" width="'+fw+'" height="5"/></g>'+line(fx,fy-8,fx+fw,fy-8,fmt(W)+' mm',fx+fw/2,fy-13)+line(fx-12,fy,fx-12,fy+fh,fmt(H)+' mm',fx-16,fy+fh/2,'end')+line(sx,fy-8,sx+sw,fy-8,fmt(D)+' mm',sx+sw/2,fy-13)+'<g fill="'+colors.ink+'" font-size="10" font-weight="700"><text x="40" y="195">FRONT</text><text x="295" y="195">SIDE</text><text x="40" y="278">TOP</text><text x="220" y="278" text-anchor="middle" font-weight="400">Material thickness: '+fmt(t)+' mm</text></g></svg>';
  };
  const shelfTop=shelfZ+t,drawerBottomGap=drawerZ-shelfTop,drawerTopGap=zRail-(drawerZ+drawerH);
- preview.innerHTML='<div class="nightstand-view-grid blueprint-layout"><article class="nightstand-view-card blueprint-finished"><h3>1. Finished nightstand</h3>'+assembled()+'</article><article class="nightstand-view-card blueprint-exploded"><h3>2. Exploded view</h3>'+exploded()+'</article><article class="nightstand-view-card blueprint-dimensions"><h3>3. Dimensioned views</h3><h4>Front, side and top dimensions</h4>'+dimensionViews()+'</article><article class="nightstand-view-card blueprint-construction"><h3>4. Detailed drawings and construction information</h3>'+connectionDetails()+'<h4>Drawer dimensions and placement</h4><div class="fields"><div><strong>Drawer face</strong><br>'+fmt(drawerW)+' × '+fmt(drawerH)+' mm</div><div><strong>Clearance at each side</strong><br>'+fmt(clearance)+' mm</div><div><strong>Gap above shelf</strong><br>'+fmt(drawerBottomGap)+' mm</div><div><strong>Gap below upper rail</strong><br>'+fmt(drawerTopGap)+' mm</div><div><strong>Drawer box depth</strong><br>'+fmt(drawerBoxDepth)+' mm</div><div><strong>Material thickness</strong><br>'+fmt(t)+' mm</div></div><p class="muted">Part sizes and dimensions update with the current inputs. Dry-fit the parts and test drawer movement with scrap material before final assembly.</p></article></div>';
+ preview.innerHTML='<div class="nightstand-view-grid blueprint-layout"><article class="nightstand-view-card blueprint-finished"><h3>1. Finished nightstand</h3>'+assembled()+'</article><article class="nightstand-view-card blueprint-exploded"><h3>2. Exploded view</h3>'+exploded()+'</article><article class="nightstand-view-card blueprint-dimensions"><h3>3. Dimensioned views</h3><h4>Front, side and top dimensions</h4>'+dimensionViews()+'</article><article class="nightstand-view-card blueprint-construction"><h3>4. Detailed drawings and construction information</h3><h4>Drawer dimensions and placement</h4><div class="fields"><div><strong>Drawer face</strong><br>'+fmt(drawerW)+' × '+fmt(drawerH)+' mm</div><div><strong>Clearance at each side</strong><br>'+fmt(clearance)+' mm</div><div><strong>Gap above shelf</strong><br>'+fmt(drawerBottomGap)+' mm</div><div><strong>Gap below upper rail</strong><br>'+fmt(drawerTopGap)+' mm</div><div><strong>Drawer box depth</strong><br>'+fmt(drawerBoxDepth)+' mm</div><div><strong>Material thickness</strong><br>'+fmt(t)+' mm</div></div><p class="muted">Part sizes and dimensions update with the current inputs. Dry-fit the parts and test drawer movement with scrap material before final assembly.</p></article></div>';
  list.innerHTML=r.parts.map(p=>'<div class="nightstand-part" data-part-id="'+p.id+'"><strong>'+p.id+' — '+p.name+'</strong><span>Cut '+p.qty+' · '+fmt(p.a)+' × '+fmt(p.b)+' × '+fmt(p.c)+' mm</span><p class="muted">'+p.role+'</p></div>').join("");
  status.textContent="Nightstand dimensions calculated: "+fmt(r.checks.outsideWidth)+" × "+fmt(r.checks.outsideHeight)+" × "+fmt(r.checks.outsideDepth)+" mm outside. Material thickness "+fmt(t)+" mm included. Dimensional checks passed for ideal geometry. Cardboard compression, cut accuracy, glue thickness and drawer movement still require a physical test.";
 }
