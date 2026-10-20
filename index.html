@@ -140,6 +140,16 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
   <h2>Front, side and top views</h2>
   <p>Overall dimensions are shown in millimetres. Component sizes are calculated from the same model as the cut list.</p>
   <div id="nsOrthoViews" class="ns-views"></div>
+  <div class="ns-view-card">
+   <h3>Connection and joint schedule</h3>
+   <table class="ns-cut-table"><thead><tr><th>Connection</th><th>Engineering assumption</th><th>Verification required</th></tr></thead><tbody>
+    <tr><td>Top to four legs</td><td>Top panel rests on the leg ends; simple butt/glue joint. Top is full outside width × depth.</td><td>Confirm each leg is square, flush and positioned at the corners.</td></tr>
+    <tr><td>Rails to legs</td><td>Front, rear and side rails span between leg inner faces.</td><td>Check the rail ends meet the legs without overlap or gaps.</td></tr>
+    <tr><td>Lower shelf to frame</td><td>Shelf is sized to fit between the four legs.</td><td>Confirm the chosen support method and shelf height before gluing.</td></tr>
+    <tr><td>Drawer box</td><td>Side walls, rear wall and bottom are separate calculated panels.</td><td>Dry-fit the box; slide hardware and running friction are not validated.</td></tr>
+   </tbody></table>
+   <p class="ns-note">Joint model: simple butt/glue joints only. No dowels, grooves, rabbets, tabs or fastener allowances are included. A physical prototype is required before treating this as construction-ready.</p>
+  </div>
  </article>
  <article class="ns-pdf-page">
   <p class="ns-kicker">Calculated component schedule</p>
@@ -590,11 +600,15 @@ function generateNightstandBlueprint(input){
  const shelfTop=shelfY+shelfH;
  const gap=(upperRailBottom-shelfTop-drawerFaceH)/2;
  const checks=[
-  ["Positive part sizes",[leg,innerW,innerD,faceW,boxW,sideLen,drawerSideH,backW,bottomD].every(n=>n>0)],
+  ["All cut-list dimensions are positive",parts.every(p=>p.qty>0 && [p.a,p.b,p.c].every(n=>Number.isFinite(n)&&n>0))],
   ["Legs fit inside outside dimensions",2*leg<W && 2*leg<D],
-  ["Drawer fits between legs",faceW+2*clearance<=innerW+1e-6 && drawerDepth+2*clearance<=innerD+1e-6],
+  ["Drawer face plus side clearances equals inner opening",Math.abs(faceW+2*clearance-innerW)<1e-6],
+  ["Drawer depth plus rear clearance fits frame",drawerDepth+2*clearance<=innerD+1e-6],
+  ["Drawer box panels fit calculated opening",boxW>2*t && sideLen>t && drawerSideH>0 && backW>0 && bottomD>0],
   ["Drawer and shelf have positive vertical clearance",gap>0],
-  ["Top matches outside width and depth",Math.abs(W-W)<1e-6 && Math.abs(D-D)<1e-6]
+  ["Top cut size matches outside dimensions",Math.abs(parts[0].a-W)<1e-6 && Math.abs(parts[0].b-D)<1e-6],
+  ["Leg cut height meets underside of top",Math.abs(parts[1].c-(H-t))<1e-6],
+  ["Shelf cut size matches leg-to-leg opening",Math.abs(parts[2].a-innerW)<1e-6 && Math.abs(parts[2].b-innerD)<1e-6]
  ];
  if(checks.some(c=>!c[1])) return {ok:false,error:"These dimensions and material thickness do not leave enough room for a physically plausible nightstand drawer and frame. Adjust the dimensions or thickness before exporting the PDF."};
  const parts=[
