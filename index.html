@@ -545,7 +545,7 @@ function generateNightstandConcept(input){
   dimensionsMatch:Math.abs((2*leg+W-2*leg)-W)<1e-8&&Math.abs((legH+t)-H)<1e-8&&Math.abs((2*leg+D-2*leg)-D)<1e-8
  };
  if(!Object.values(checks).every(Boolean))return {ok:false,error:"The geometry consistency checks failed. Please adjust the dimensions."};
- return {ok:true,input,leg,railH,clearance,shelfZ,drawerW,drawerH,drawerD,drawerBoxInnerW,drawerBoxDepth,parts,checks,
+ return {ok:true,input,leg,railH,clearance,shelfW,shelfD,shelfZ,drawerW,drawerH,drawerD,drawerBoxInnerW,drawerBoxDepth,parts,checks,
   warning:"Geometry checks passed for the stated idealized construction. Glue thickness, cutting kerf, cardboard compression, drawer running clearance and physical fit still need a material test."};
 }
 function renderNightstandConcept(){
