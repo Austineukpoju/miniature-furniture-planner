@@ -163,7 +163,7 @@ test("nightstand support style switches between four legs and two full side pane
   await page.locator("#supportStyle").selectOption("side-panels");
   await page.locator("#generateNightstand").click();
   await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toHaveAttribute("data-support-style", "side-panels");
-  await expect(page.locator("#nightstandPreview svg[aria-label^="+"Detailed exploded nightstand parts drawing"+"]')).toHaveAttribute("data-support-style", "side-panels");
+  await expect(page.locator('#nightstandPreview svg[aria-label*="exploded"]')).toHaveAttribute("data-support-style", "side-panels");
   await expect(page.locator("#nightstandParts")).toContainText("Full-height side supports");
   await expect(page.locator("#nightstandParts")).not.toContainText("Corner legs");
   await expect(page.locator("#nightstandStatus")).toContainText("two full side panels");
