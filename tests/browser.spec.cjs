@@ -103,12 +103,12 @@ test("nightstand concept recalculates its parts from current dimensions and mark
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(appUrl);
   await page.locator("#generateNightstand").click();
-  await expect(page.locator("#nightstandPreview svg")).toBeVisible();
+  await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toBeVisible();
   await expect(page.locator("#nightstandParts .nightstand-part")).toHaveCount(10);
   await expect(page.locator("#nightstandParts")).toContainText("Corner legs");
   await expect(page.locator("#nightstandParts")).toContainText("Drawer front");
-  await expect(page.locator("#nightstandStatus")).toContainText("Idealized geometry checks passed");
-  await expect(page.locator("#nightstandStatus")).toContainText("physical fit still need a material test");
+  await expect(page.locator("#nightstandStatus")).toContainText("Dimensional checks passed for ideal geometry");
+  await expect(page.locator("#nightstandStatus")).toContainText("physical test");
   const first = await page.locator("#nightstandParts").innerText();
   await page.locator("#width").fill("40");
   await page.locator("#height").fill("50");
@@ -134,7 +134,7 @@ test("nightstand shows assembled and exploded views tied to dimensions and mater
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-height", "50");
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-depth", "30");
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-material-thickness", "2");
-  await expect(page.locator("#nightstandParts")).toContainText("Material");
+  await expect(page.locator("#nightstandStatus")).toContainText("Material thickness 2 mm");
   const first = await page.locator("#nightstandParts").innerText();
   await page.locator("#thickness").fill("1");
   await page.locator("#generateNightstand").click();
