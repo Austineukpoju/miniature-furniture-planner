@@ -25,7 +25,7 @@ The preview uses an isometric projection of cabinet coordinates:
 - carcass depth: D-t;
 - back panel: mounted at the rear of the carcass, with thickness extending from y=D-t to y=D.
 
-The revised SVG assigns stable data-face identifiers so browser tests can assert the presence of expected surfaces. The preview now explicitly depicts the back's inside face, exterior side faces, top panel and side strips, interior top/bottom/side surfaces, front cut edges, and exposed back thickness edges.
+The revised SVG assigns stable data-face identifiers so browser tests can assert the presence of expected surfaces. Invalid dimensions now clear generated previews and cut patterns so a previous valid plan cannot be mistaken for the current invalid inputs. The preview now explicitly depicts the back's inside face, exterior side faces, top panel and side strips, interior top/bottom/side surfaces, front cut edges, and exposed back thickness edges.
 
 This is still a 2D SVG projection of ideal panel surfaces, not a solid CAD mesh. A visual inspection of the rendered screenshot and edge occlusion remains valuable. Do not describe it as manufacturing-grade CAD.
 
@@ -50,7 +50,7 @@ The generator's model predicts:
 
 These dimensions match the reference cut list exactly when dimensions are expressed in the same orientation and the reference's nominal 3/4-inch thickness and joint method are assumed. This is a valid equation-level cross-check of the same construction convention, not an independent guarantee of the reference plan's build quality. The reference is full-size woodworking in plywood, not a miniature cardboard plan; its material scale differs, but the joint arrangement is equivalent.
 
-Converted to millimetres for an input test: W=609.6, H=1212.85, D=304.8, t=19.05. These exceed the app's current input maximum of 500 mm for width/height/depth, so use the same formulas in a separate reference-comparison test rather than entering this full-size case into the current UI. A future improvement should allow unit-aware reference tests without weakening the UI's intended miniature-size limits.
+The full-size reference values exceed the app's current 500 mm input maximum for height. To run a proportional end-to-end test within the existing limits, the browser suite scales all reference dimensions by 0.4: W=243.84, H=485.14, D=121.92, t=7.62 mm. The generator should then produce sides 114.3 × 485.14 mm (qty 2), top and bottom 228.6 × 114.3 mm, and back 243.84 × 485.14 mm. Uniform scaling preserves all dimension ratios and the joint equations, so this is a valid proportional cut-list comparison. It does not replace testing the full-size woodworking plan or prove cardboard performance.
 
 ## Current limitations and future-proofing
 
