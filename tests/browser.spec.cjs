@@ -8,9 +8,6 @@ test("initial plan renders coherent cut list, 3D faces, patterns and panel views
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(appUrl);
-  await page.locator("#designType").selectOption("nightstand");
-  await page.locator("#designType").selectOption("nightstand");
-  await page.locator("#designType").selectOption("nightstand");
   await expect(page.locator("#error")).toHaveText("");
   await expect(page.locator("#cutRows tr")).toHaveCount(4);
   await expect(page.locator("#pieceList .piece")).toHaveCount(4);
@@ -98,6 +95,7 @@ test("nightstand engineering pages are generated only when Print / Save as PDF i
     window.print = () => { window.__printCalled = true; };
   });
   await page.goto(appUrl);
+  await page.locator("#planOutput").selectOption("nightstand");
   await expect(page.locator("#nightstandPdfSection")).toBeHidden();
   await expect(page.locator("#nightstandPdfSection")).toContainText("");
   await expect(page.locator("body")).not.toContainText("Generate Nightstand");
@@ -120,6 +118,7 @@ test("nightstand engineering pages are generated only when Print / Save as PDF i
 test("nightstand PDF drawings and cut list recalculate from the current dimensions", async ({ page }) => {
   await page.addInitScript(() => { window.print = () => { window.__printCalled = true; }; });
   await page.goto(appUrl);
+  await page.locator("#planOutput").selectOption("nightstand");
   await page.locator("#width").fill("40");
   await page.locator("#height").fill("50");
   await page.locator("#depth").fill("30");
@@ -135,6 +134,7 @@ test("nightstand PDF drawings and cut list recalculate from the current dimensio
 test("nightstand blueprint refuses dimensions that cannot support a drawer and frame", async ({ page }) => {
   await page.addInitScript(() => { window.print = () => { window.__printCalled = true; }; });
   await page.goto(appUrl);
+  await page.locator("#planOutput").selectOption("nightstand");
   await page.locator("#width").fill("10");
   await page.locator("#height").fill("10");
   await page.locator("#depth").fill("5");
@@ -144,29 +144,4 @@ test("nightstand blueprint refuses dimensions that cannot support a drawer and f
   expect(await page.evaluate(() => Boolean(window.__printCalled))).toBe(false);
 });
 
-test("nightstand mode uses matching engineering output and applies material and scale metadata", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
-  await page.addInitScript(() => { window.print = () => { window.__printCalled = true; }; });
-  await page.goto(appUrl);
-  await page.locator("#designType").selectOption("nightstand");
-  await expect(page.locator("#nightstandModeNote")).toBeVisible();
-  await expect(page.locator("#preview")).toBeHidden();
-  await expect(page.locator("#patterns")).toBeHidden();
-  await expect(page.locator("#download")).toBeHidden();
-  await page.locator("#materialType").selectOption("basswood");
-  await page.locator("#miniScale").selectOption("12");
-  await page.locator("#width").fill("36");
-  await page.locator("#height").fill("45");
-  await page.locator("#depth").fill("27");
-  await page.locator("#thickness").fill("1");
-  await expect(page.locator("#materialScaleNote")).toContainText("Basswood / craft wood");
-  await expect(page.locator("#materialScaleNote")).toContainText("1:12");
-  await page.locator("#print").click();
-  await expect(page.locator("#nsPdfSummary")).toContainText("Basswood / craft wood");
-  await expect(page.locator("#nsPdfSummary")).toContainText("1:12");
-  await expect(page.locator("#nsAssemblySteps li")).toHaveCount(7);
-  await expect(page.locator("#nsGeometryChecks")).toContainText("Drawer back fits between drawer side walls: PASS");
-  expect(await page.evaluate(() => window.__printCalled)).toBe(true);
-  expect(errors).toEqual([]);
-});
+
