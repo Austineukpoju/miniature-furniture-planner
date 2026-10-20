@@ -397,39 +397,34 @@ updateToleranceDisplay();
 
 
 function renderCabinetPreview(plan) {
- const host=document.getElementById("cabinetPreview");
- const caption=document.getElementById("previewCaption");
- if(!host||!plan||!plan.ok)return;
- const {W,H,D,t}=plan.input;
- const scale=Math.min(2.2,150/Math.max(W+D*.55,H+D*.38));
- const fw=W*scale,fh=H*scale,dx=D*scale*.42,dy=D*scale*.25;
- const x=48+dx,y=48+dy,th=Math.max(2,t*scale);
- const backX=x-dx,backY=y-dy;
- const point=q=>q[0].toFixed(2)+","+q[1].toFixed(2);
- const poly=pts=>pts.map(point).join(" ");
- const A=[x,y],B=[x+fw,y],C=[x+fw,y+fh],E=[x,y+fh];
- const A0=[backX,backY],B0=[backX+fw,backY],C0=[backX+fw,backY+fh],E0=[backX,backY+fh];
- const shapes=[
-  [A0,B0,C0,E0,"#f4f0e4"],
-  [A,B,B0,A0,"#d9e9dd"],
-  [B,B0,C0,C,"#9fbea9"],
-  [A,B,C,E,"#fffdf7"],
-  [[x,y],[x+fw,y],[x+fw-th,y+th],[x+th,y+th],"#d9e9dd"],
-  [[x,y],[x+th,y+th],[x+th,y+fh-th],[x,y+fh],"#9fbea9"],
-  [[x+fw-th,y+th],[x+fw,y],[x+fw,y+fh],[x+fw-th,y+fh-th],"#9fbea9"],
-  [[x+th,y+fh-th],[x+fw-th,y+fh-th],[x+fw,y+fh],[x,y+fh],"#d9e9dd"],
-  [[x+th,y+th],[x+fw-th,y+th],[x+fw-th-dx*.8,y+th-dy*.8],[x+th-dx*.8,y+th-dy*.8],"#edf4ee"],
-  [[x+fw-th,y+th],[x+fw-th-dx*.8,y+th-dy*.8],[x+fw-th-dx*.8,y+fh-th-dy*.8],[x+fw-th,y+fh-th],"#c5d9ca"],
-  [[x+th,y+fh-th],[x+fw-th,y+fh-th],[x+fw-th-dx*.8,y+fh-th-dy*.8],[x+th-dx*.8,y+fh-th-dy*.8],"#d9e9dd"]
- ];
- let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 245" role="img" aria-label="Proportional cabinet preview">';
- svg+='<text x="170" y="16" text-anchor="middle" font-size="10" fill="#65746c">PROPORTIONAL PREVIEW · NOT TO PRINT SCALE</text>';
- svg+='<g stroke="#315f4c" stroke-width="1.2" stroke-linejoin="round">';
- for(const s of shapes)svg+='<polygon points="'+poly(s.slice(0,4))+'" fill="'+s[4]+'"/>';
- svg+='</g>';
- svg+='<g fill="#173f35" font-size="10"><text x="'+(x+fw/2)+'" y="'+(y+fh+30)+'" text-anchor="middle">Width '+fmt(W)+' mm</text><text x="'+(x-8)+'" y="'+(y+fh/2)+'" text-anchor="end">Height '+fmt(H)+' mm</text><text x="'+(x+fw+dx+4)+'" y="'+(y+fh/2-dy/2)+'" transform="rotate(-25 '+(x+fw+dx+4)+' '+(y+fh/2-dy/2)+')">Depth '+fmt(D)+' mm</text></g></svg>';
+ const host = document.getElementById("cabinetPreview");
+ const caption = document.getElementById("previewCaption");
+ if (!host || !plan || !plan.ok) return;
+ const W=plan.input.W, H=plan.input.H, D=plan.input.D, t=plan.input.t;
+ const bodyD=D-t, kx=.42, ky=.25;
+ const scale=Math.min(190/(W+bodyD*kx),175/(H+bodyD*ky),2.5);
+ const left=(360-W*scale-bodyD*kx*scale)/2, top=42+bodyD*ky*scale;
+ const P=(x,y,z)=>[left+x*scale+y*kx*scale,top+(H-z)*scale-y*ky*scale];
+ const poly=pts=>pts.map(q=>{const p=P(q[0],q[1],q[2]);return p[0].toFixed(2)+","+p[1].toFixed(2)}).join(" ");
+ const face=(pts,fill)=>'<polygon points="'+poly(pts)+'" fill="'+fill+'" stroke="#315f4c" stroke-width="1.1" stroke-linejoin="round"/>';
+ const line=(a,b)=>{const p=P(a[0],a[1],a[2]),q=P(b[0],b[1],b[2]);return '<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="#315f4c" stroke-width="1.4"/>'};
+ let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 280" role="img" aria-label="Open-front cabinet 3D-style preview">';
+ svg+='<text x="180" y="17" text-anchor="middle" font-size="10" fill="#65746c">PROPORTIONAL PREVIEW · NOT PRINT SCALE</text>';
+ // Explicit geometry: x=width, y=depth, z=height; front is y=0.
+ svg+=face([[0,bodyD,0],[W,bodyD,0],[W,bodyD,H],[0,bodyD,H]],"#f4f0e4");
+ svg+=face([[0,0,0],[0,bodyD,0],[0,bodyD,H],[0,0,H]],"#9fbea9");
+ svg+=face([[W,0,0],[W,bodyD,0],[W,bodyD,H],[W,0,H]],"#83a991");
+ svg+=face([[0,0,H],[0,bodyD,H],[W,bodyD,H],[W,0,H]],"#d9e9dd");
+ svg+=face([[t,0,t],[t,bodyD,t],[W-t,bodyD,t],[W-t,0,t]],"#c8ddce");
+ svg+=face([[t,0,H-t],[t,bodyD,H-t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#e4eee6");
+ svg+=face([[t,0,t],[t,bodyD,t],[t,bodyD,H-t],[t,0,H-t]],"#a9c8b3");
+ svg+=face([[W-t,0,t],[W-t,bodyD,t],[W-t,bodyD,H-t],[W-t,0,H-t]],"#91b49d");
+ svg+=face([[t,0,0],[t,bodyD,0],[W-t,bodyD,0],[W-t,0,0]],"#b9d2c1");
+ // Front remains open; outline the opening and show the rear panel.
+ svg+=line([0,0,0],[0,0,H])+line([W,0,0],[W,0,H])+line([0,0,H],[W,0,H])+line([0,0,0],[W,0,0]);
+ svg+='<g fill="#173f35" font-size="10" font-weight="600"><text x="180" y="254" text-anchor="middle">Width: '+fmt(W)+' mm</text><text x="12" y="145">Height: '+fmt(H)+' mm</text><text x="265" y="231" text-anchor="middle">Depth: '+fmt(D)+' mm</text></g></svg>';
  host.innerHTML=svg;
- if(caption)caption.textContent='Target outside size: '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm. The rear panel is mounted across the back and included in overall depth.';
+ if(caption) caption.textContent='Open-front cabinet · outside size '+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm. Body depth is '+fmt(bodyD)+' mm; the rear panel adds '+fmt(t)+' mm.';
 }
 
 </script>
