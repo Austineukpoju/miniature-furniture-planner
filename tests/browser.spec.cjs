@@ -147,7 +147,7 @@ test("nightstand shows assembled and exploded views tied to dimensions and mater
 test("nightstand generator rejects impossible dimensions instead of showing an old concept", async ({ page }) => {
   await page.goto(appUrl);
   await page.locator("#generateNightstand").click();
-  await expect(page.locator("#nightstandPreview svg")).toBeVisible();
+  await expect(page.locator('#nightstandPreview svg[aria-label^="Assembled"]')).toBeVisible();
   await page.locator("#width").fill("10");
   await page.locator("#height").fill("10");
   await page.locator("#depth").fill("5");
