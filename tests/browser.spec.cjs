@@ -13,7 +13,9 @@ test("initial plan renders coherent cut list, 3D faces, patterns and panel views
   await expect(page.locator("#pieceList .piece")).toHaveCount(4);
   await expect(page.locator("#partViews .part-view-card")).toHaveCount(4);
   await expect(page.locator("#cabinetPreview svg [data-face]")).toHaveCount(17);
-  await expect(page.locator("#cabinetPreview svg")).toHaveAttribute("data-model-width", "36");
+  await expect(page.locator("#cabinetPreview svg")).toHaveCount(0);
+  await expect(page.locator("#cutRows tr")).toHaveCount(0);
+  await expect(page.locator("#pieceList .piece")).toHaveCount(0);
   await expect(page.locator("#mathTestStatus")).toHaveText("Passed");
   await expect(page.locator("#cutRows")).toContainText("26 × 45");
   await expect(page.locator("#cutRows")).toContainText("34 × 26");
@@ -66,4 +68,20 @@ test("cutting patterns include physical dimensions and 100 mm calibration SVG", 
   await expect(page.locator("#pieceList svg")).toHaveCount(4);
   const widths = await page.locator("#pieceList svg").evaluateAll(nodes => nodes.map(node => node.getAttribute("width")));
   expect(widths.every(value => value && value.endsWith("mm"))).toBeTruthy();
+});
+
+test("scaled external reference cut list matches the generator's joint equations", async ({ page }) => {
+  await page.goto(appUrl);
+  // Reference: W=24 in, H=47.75 in, D=12 in, t=0.75 in.
+  // Scale every dimension by 0.4 so it fits the app's miniature input bounds;
+  // uniform scaling preserves the reference's joint geometry exactly.
+  await page.locator("#width").fill("243.84");
+  await page.locator("#height").fill("485.14");
+  await page.locator("#depth").fill("121.92");
+  await page.locator("#thickness").fill("7.62");
+  await page.locator("#generate").click();
+  await expect(page.locator("#error")).toHaveText("");
+  await expect(page.locator("#cutRows")).toContainText("114.3 × 485.14");
+  await expect(page.locator("#cutRows")).toContainText("228.6 × 114.3");
+  await expect(page.locator("#cutRows")).toContainText("243.84 × 485.14");
 });
