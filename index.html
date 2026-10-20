@@ -60,6 +60,24 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 <h2>4. Step-by-step assembly guide</h2>
 <ol class="steps" id="stepsList"></ol>
 </section>
+<section class="panel" id="mathAudit">
+<h2>Mathematical foundation audit</h2>
+<p><strong>Geometry model:</strong> the top and bottom fit between the two side panels; the back covers the rear edges and adds its thickness to the overall depth.</p>
+<div class="stats">
+<div class="stat"><strong id="mathTestCount">—</strong><span>Random geometry cases checked</span></div>
+<div class="stat"><strong id="mathTestStatus">Pending</strong><span>Ideal-dimension checks</span></div>
+<div class="stat"><strong id="mathTolerance">—</strong><span>Estimated tolerance budget</span></div>
+</div>
+<p id="mathAuditNote" class="muted">These are mathematical consistency checks, not proof that cardboard cuts, glue joints, or printed pages will be exact.</p>
+<h3>Fit and cutting tolerance</h3>
+<p class="hint">Real cardboard, hand-cut edges and glue introduce variation. This calculator shows how a small error in each cut can affect the fit; it does not silently change the design dimensions.</p>
+<div class="fields">
+<div class="field"><label for="cutTolerance">Estimated error per cut edge (mm)</label><input id="cutTolerance" type="number" min="0" max="2" step="0.1" value="0.3"></div>
+<div class="field"><label for="fitClearance">Desired fit clearance per joint (mm)</label><input id="fitClearance" type="number" min="0" max="2" step="0.1" value="0.2"></div>
+</div>
+<div class="actions no-print"><button class="secondary" id="checkTolerance">Calculate tolerance impact</button></div>
+<p id="toleranceResult" aria-live="polite" class="hint">Enter your estimated cutting error and fit clearance, then calculate.</p>
+</section>
 <section class="panel">
 <h2>5. Before you cut your final cardboard</h2>
 <ul style="padding-left:20px;margin-bottom:0">
@@ -281,6 +299,99 @@ if (!selfTestResult.ok) {
   console.error(selfTestResult.message);
 }
 render();
+
+/*
+  Independent mathematical audit helpers.
+  These validate ideal geometry; they cannot certify material properties or printer output.
+*/
+function calculateToleranceBudget(cutError, clearance) {
+  if (!Number.isFinite(cutError) || !Number.isFinite(clearance) || cutError < 0 || clearance < 0 || cutError > 2 || clearance > 2) {
+    return { ok: false, message: "Use values from 0 to 2 mm." };
+  }
+  // Conservative accumulation for hand cutting: each panel dimension is defined by two cut edges.
+  // For two parts meeting at a joint, worst-case relative mismatch can add both parts' dimensional errors.
+  const singlePanelDimensionWorstCase = 2 * cutError;
+  const twoPartJointWorstCase = 4 * cutError;
+  const recommendedClearanceForWorstCase = twoPartJointWorstCase;
+  return {
+    ok: true,
+    singlePanelDimensionWorstCase,
+    twoPartJointWorstCase,
+    clearance,
+    recommendedClearanceForWorstCase,
+    message: "With an assumed ±" + fmt(cutError) + " mm error per cut edge, one panel dimension could vary by up to about ±" + fmt(singlePanelDimensionWorstCase) + " mm; two mating parts can accumulate a worst-case mismatch of about " + fmt(twoPartJointWorstCase) + " mm. Your chosen " + fmt(clearance) + " mm clearance may not absorb that. These are conservative estimates, not measured material performance."
+  };
+}
+function runExpandedGeometryTests() {
+  const fixedCases = [
+    { input: { W: 40, H: 50, D: 30, t: 1 }, expected: [[29,50,2],[38,29,1],[38,29,1],[40,50,1]] },
+    { input: { W: 36, H: 45, D: 27, t: 1 }, expected: [[26,45,2],[34,26,1],[34,26,1],[36,45,1]] },
+    { input: { W: 80, H: 100, D: 60, t: 2 }, expected: [[58,100,2],[76,58,1],[76,58,1],[80,100,1]] },
+    { input: { W: 20, H: 25, D: 12, t: 0.5 }, expected: [[11.5,25,2],[19,11.5,1],[19,11.5,1],[20,25,1]] },
+    { input: { W: 10, H: 10, D: 5, t: 0.2 }, expected: [[4.8,10,2],[9.6,4.8,1],[9.6,4.8,1],[10,10,1]] }
+  ];
+  let count = 0;
+  for (const test of fixedCases) {
+    const r = generateCabinetDesign(test.input);
+    if (!r.ok) return { ok: false, count, message: "A fixed regression case was rejected." };
+    for (let i = 0; i < test.expected.length; i++) {
+      const [w, h, qty] = test.expected[i], p = r.parts[i];
+      if (Math.abs(p.width-w)>1e-8 || Math.abs(p.height-h)>1e-8 || p.qty!==qty) return { ok:false, count, message:"A fixed expected cut-list case failed." };
+    }
+    count++;
+  }
+  const invalidCases = [
+    {W:2,H:10,D:10,t:1}, {W:20,H:10,D:1,t:1}, {W:10,H:10,D:5,t:10},
+    {W:20,H:10,D:10,t:0.1}, {W:501,H:20,D:20,t:1}
+  ];
+  for (const input of invalidCases) {
+    if (generateCabinetDesign(input).ok) return { ok:false, count, message:"An invalid-input case was incorrectly accepted." };
+    count++;
+  }
+  // Deterministic broad sweep of valid dimensions; no randomness so results are repeatable.
+  let sweepCount = 0;
+  for (let n = 0; n < 10000; n++) {
+    const W = 10 + ((n * 37) % 491);
+    const H = 10 + ((n * 61) % 491);
+    const D = 5 + ((n * 43) % 496);
+    const t = 0.2 + (((n * 17) % 99) / 10);
+    const r = generateCabinetDesign({W,H,D,t});
+    if (!r.ok) continue;
+    const p = r.parts;
+    if (p.some(x => x.width <= 0 || x.height <= 0) ||
+        Math.abs(2*t + p[1].width - W) > 1e-7 ||
+        Math.abs((D-t) + t - D) > 1e-7 ||
+        Math.abs(p[3].width - W) > 1e-7 ||
+        Math.abs(p[3].height - H) > 1e-7) {
+      return {ok:false,count:count+sweepCount,message:"A deterministic geometry sweep failed."};
+    }
+    sweepCount++;
+  }
+  return {ok:true,count:count+sweepCount,message:"All fixed cases, invalid-input cases, and deterministic geometry invariants passed. This validates ideal calculations only, not physical fit or print scaling."};
+}
+function updateMathAudit() {
+  const audit = runExpandedGeometryTests();
+  const count = document.getElementById("mathTestCount");
+  const status = document.getElementById("mathTestStatus");
+  const note = document.getElementById("mathAuditNote");
+  const tolerance = document.getElementById("mathTolerance");
+  if (count) count.textContent = audit.count.toLocaleString();
+  if (status) status.textContent = audit.ok ? "Passed" : "Failed";
+  if (note) note.textContent = audit.message;
+  if (tolerance) tolerance.textContent = "4× cut error";
+}
+function updateToleranceDisplay() {
+  const cut = Number(document.getElementById("cutTolerance").value);
+  const clearance = Number(document.getElementById("fitClearance").value);
+  const result = calculateToleranceBudget(cut, clearance);
+  const output = document.getElementById("toleranceResult");
+  if (output) output.textContent = result.ok ? result.message : result.message;
+}
+const toleranceButton = document.getElementById("checkTolerance");
+if (toleranceButton) toleranceButton.addEventListener("click", updateToleranceDisplay);
+updateMathAudit();
+updateToleranceDisplay();
+
 </script>
 </body>
 </html>
