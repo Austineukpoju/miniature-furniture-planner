@@ -119,11 +119,15 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 
 <section id="nightstandPdfSection" aria-hidden="true">
  <article class="ns-pdf-page">
-  <p class="ns-kicker">Miniature Furniture Planner · PDF-only engineering supplement</p>
-  <h2>Nightstand — finished design</h2>
+  <p class="ns-kicker">Miniature Furniture Planner · PDF-only engineering drawing set</p>
+  <h2>Nightstand — engineering design basis</h2>
   <p id="nsPdfSummary"></p>
-  <div id="nsFinishedView"></div>
-  <p class="ns-note">Engineering line drawing generated from the dimensions entered in the cabinet planner. Diagram views are schematic and not print-scale; use the dimensioned cut list for sizes. Cardboard, glue and cutting tolerances require a physical test.</p>
+  <div class="ns-view-card">
+   <h3>Drawing conventions and limitations</h3>
+   <p>Use the dimensioned orthographic views and calculated component schedule for measurements. The exploded view is for component identification and assembly order, not a scale cutting template.</p>
+   <p>All dimensions are in millimetres. Material thickness is included in the component calculations. Check the printed 100 mm calibration line before using any printable patterns, and test one sample joint in the intended cardboard before final assembly.</p>
+  </div>
+  <p class="ns-note">This is a dimension-driven engineering drawing set, not a photorealistic or finished-furniture illustration. Mathematical checks do not replace a physical fit test.</p>
  </article>
  <article class="ns-pdf-page">
   <p class="ns-kicker">Construction layout</p>
@@ -606,46 +610,9 @@ function generateNightstandBlueprint(input){
   {id:"10",name:"Drawer bottom",qty:1,a:backW,b:bottomD,c:t,purpose:"Bottom panel fits inside drawer box"}
  ];
  const model={W,H,D,t,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks};
- model.finishedSvg=makeNsFinished(model);
  model.explodedSvg=makeNsExploded(model);
  model.ortho=makeNsOrtho(model);
  return {ok:true,model};
-}
-function makeNsFinished(m){
- const s=Math.min(75/m.W,76/m.H,30/m.D), wx=m.W*s, hy=m.H*s, dx=m.D*s*.55, dy=m.D*s*.38, leg=m.leg*s, th=m.t*s;
- const x0=27, y0=126, frontLeft={x:x0,y:y0}, frontRight={x:x0+wx,y:y0}, rearLeft={x:x0+dx,y:y0-dy}, rearRight={x:x0+wx+dx,y:y0-dy};
- const Y=(p,h)=>({x:p.x,y:p.y-h*s});
- const poly=pts=>'<polygon points="'+pts.map(p=>p.x+','+p.y).join(' ')+'" fill="white" stroke="#111" stroke-width=".9" stroke-linejoin="round"/>';
- let c=nsText(95,7,"FINISHED NIGHTSTAND · ISOMETRIC",5.5);
- const topFL=Y(frontLeft,m.H),topFR=Y(frontRight,m.H),topRL=Y(rearLeft,m.H),topRR=Y(rearRight,m.H);
- // Four posts are drawn first; the tabletop and drawer face sit in front of them.
- const legBottom=[{x:frontLeft.x+leg/2,y:y0},{x:frontRight.x-leg/2,y:y0},{x:rearLeft.x+leg/2,y:rearLeft.y},{x:rearRight.x-leg/2,y:rearRight.y}];
- legBottom.forEach(p=>c+=nsLine(p.x,p.y,p.x,p.y-m.H*s,""+Math.max(1,leg),""));
- // Shelf plane between the posts.
- const shelfLevel=m.shelfY;
- const shelfFL=Y(frontLeft,shelfLevel), shelfFR=Y(frontRight,shelfLevel), shelfRL=Y(rearLeft,shelfLevel), shelfRR=Y(rearRight,shelfLevel);
- c+=poly([shelfFL,shelfFR,shelfRR,shelfRL]);
- // Aprons immediately beneath the top, on front and right side.
- const railBottom=m.H-m.t-m.railH;
- c+=poly([Y(frontLeft,railBottom),Y(frontRight,railBottom),Y(frontRight,railBottom+m.railH),Y(frontLeft,railBottom+m.railH)]);
- c+=poly([Y(frontRight,railBottom),Y(rearRight,railBottom),Y(rearRight,railBottom+m.railH),Y(frontRight,railBottom+m.railH)]);
- // Top panel with visible top and right edge thickness.
- const topUnderFL=Y(frontLeft,m.H-m.t),topUnderFR=Y(frontRight,m.H-m.t),topUnderRL=Y(rearLeft,m.H-m.t),topUnderRR=Y(rearRight,m.H-m.t);
- c+=poly([topFL,topFR,topRR,topRL]);
- c+=poly([topFR,topRR,topUnderRR,topUnderFR]);
- c+=poly([topFL,topFR,topUnderFR,topUnderFL]);
- // Drawer face on the front, located from calculated shelf and rail clearances.
- const drawerBottom=m.shelfTop+m.gap, drawerTop=drawerBottom+m.drawerFaceH;
- const faceLeft={x:x0+leg+((m.innerW-m.faceW)/2)*s,y:y0-drawerBottom*s};
- const faceRight={x:faceLeft.x+m.faceW*s,y:faceLeft.y};
- c+=poly([faceLeft,faceRight,{x:faceRight.x,y:faceRight.y-m.drawerFaceH*s},{x:faceLeft.x,y:faceLeft.y-m.drawerFaceH*s}]);
- c+='<circle cx="'+((faceLeft.x+faceRight.x)/2)+'" cy="'+(faceLeft.y-m.drawerFaceH*s*.52)+'" r="'+Math.max(1,th*.7)+'" fill="white" stroke="#111" stroke-width=".7"/>';
- // Dimension leaders for overall width, height and depth.
- c+=nsLine(frontLeft.x, y0+7,frontRight.x,y0+7,".5")+nsLine(frontLeft.x,y0+4,frontLeft.x,y0+10,".5")+nsLine(frontRight.x,y0+4,frontRight.x,y0+10,".5")+nsText((frontLeft.x+frontRight.x)/2,y0+13,"W "+nsFmt(m.W)+" mm",4.4);
- c+=nsLine(17,y0,17,topFL.y,".5")+nsLine(14,y0,20,y0,".5")+nsLine(14,topFL.y,20,topFL.y,".5")+nsText(13,(y0+topFL.y)/2,"H "+nsFmt(m.H),4.2,"middle",'transform="rotate(-90 13 '+((y0+topFL.y)/2)+')"');
- c+=nsLine(frontRight.x+4,frontRight.y-1,rearRight.x+4,rearRight.y-1,".5")+nsText(frontRight.x+dx*.55+7,frontRight.y-dy*.55-3,"D "+nsFmt(m.D)+" mm",4.1);
- c+=nsText(95,151,"Four corner legs · drawer face · tabletop · lower shelf",4.5);
- return nsSvg(190,158,c,"Finished nightstand isometric engineering line drawing generated from current dimensions");
 }
 function makeNsExploded(m){
  let c='', x=20,y=15;
@@ -698,7 +665,6 @@ function renderNightstandPdf(model){
  const m=model;
  const byId=id=>document.getElementById(id);
  byId("nsPdfSummary").textContent="Outside size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · material thickness "+nsFmt(m.t)+" mm · support style: four separate corner legs.";
- byId("nsFinishedView").innerHTML=m.finishedSvg;
  byId("nsExplodedView").innerHTML=m.explodedSvg;
  byId("nsOrthoViews").innerHTML='<div class="ns-view-card"><h3>Front, side and top</h3>'+m.ortho+'</div><div class="ns-view-card"><h3>Key dimensions</h3><p>Outside width: '+nsFmt(m.W)+' mm</p><p>Outside height: '+nsFmt(m.H)+' mm</p><p>Outside depth: '+nsFmt(m.D)+' mm</p><p>Material: '+nsFmt(m.t)+' mm</p><p>Drawer side clearance: '+nsFmt(m.clearance)+' mm each side</p><p>Calculated drawer box depth: '+nsFmt(m.sideLen)+' mm</p><p>Calculated vertical gap above and below drawer: '+nsFmt(m.gap)+' mm</p></div>';
  byId("nsCutIntro").textContent="Calculated for "+nsFmt(m.W)+" × "+nsFmt(m.H)+" × "+nsFmt(m.D)+" mm outside dimensions using "+nsFmt(m.t)+" mm material. Cut sizes are length × width/height × thickness unless otherwise noted.";
