@@ -495,42 +495,91 @@ document.addEventListener("click",e=>{if(e.target.closest("#openDiagramModal"))o
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeExplodedModal();});
 
 function generateNightstandConcept(input){
- const err=validateCabinetInput(input);if(err)return {ok:false,error:err};
+ const error=validateCabinetInput(input);
+ if(error)return {ok:false,error};
  const {W,H,D,t}=input;
- const leg=Math.min(W,D)*0.12;
+ // Construction: four corner legs; top rests on the legs. Shelf and apron rails fit
+ // between the legs. Drawer front sits between the front legs; box is behind its face.
+ const leg=Math.max(2*t,Math.min(W,D)*0.10);
+ const railH=Math.max(2*t,H*0.10);
+ const clearance=Math.max(0.5*t,0.5);
+ const innerW=W-2*leg;
+ const innerD=D-2*leg;
+ const shelfW=innerW-2*t;
+ const shelfD=innerD-2*t;
+ const shelfZ=H*0.30;
+ const drawerW=innerW-2*clearance;
+ const drawerH=Math.max(3*t,Math.min(H*0.20,H-shelfZ-railH-3*t));
+ const drawerD=innerD-2*t;
  const legH=H-t;
- const railH=Math.max(2*t,H*0.12);
- const shelfW=W-2*leg-2*t;
- const shelfD=D-2*leg-2*t;
- const drawerW=W-2*leg-2*t;
- const drawerH=Math.max(3*t,H*0.20);
- const drawerD=D-2*leg-2*t;
- if([leg,legH,railH,shelfW,shelfD,drawerW,drawerH,drawerD].some(n=>!Number.isFinite(n)||n<=0)||drawerH+railH+t>=H||shelfW<=2*t||drawerW<=2*t)
-  return {ok:false,error:"These dimensions are too small for the experimental nightstand proportions. Try a wider, taller or deeper design, or a thinner material."};
+ if(leg>=W/2||leg>=D/2||innerW<=2*t||innerD<=2*t||shelfW<=0||shelfD<=0||
+    drawerW<=2*t||drawerD<=2*t||drawerH<=2*t||shelfZ+ t+drawerH+railH>H-t){
+  return {ok:false,error:"These dimensions are too small for the nightstand construction. Increase the width, height or depth, or use thinner material."};
+ }
  const parts=[
-  {id:"L",name:"Corner legs",qty:4,a:leg,b:leg,c:legH},
-  {id:"T",name:"Top panel",qty:1,a:W,b:D,c:t},
-  {id:"S",name:"Lower shelf",qty:1,a:shelfW,b:shelfD,c:t},
-  {id:"F",name:"Front rail / apron",qty:1,a:W-2*leg,b:railH,c:t},
-  {id:"B",name:"Back rail / apron",qty:1,a:W-2*leg,b:railH,c:t},
-  {id:"R",name:"Side rails / aprons",qty:2,a:D-2*leg,b:railH,c:t},
-  {id:"DF",name:"Drawer front",qty:1,a:drawerW,b:drawerH,c:t},
-  {id:"DS",name:"Drawer sides",qty:2,a:drawerD,b:drawerH-t,c:t},
-  {id:"DB",name:"Drawer back",qty:1,a:drawerW-2*t,b:drawerH-t,c:t},
-  {id:"DN",name:"Drawer bottom",qty:1,a:drawerW-2*t,b:drawerD,c:t}
+  {id:"L",name:"Corner legs",qty:4,a:leg,b:leg,c:legH,role:"Vertical supports; top panel sits on their upper ends."},
+  {id:"T",name:"Top panel",qty:1,a:W,b:D,c:t,role:"Covers all four legs; establishes outside width and depth."},
+  {id:"S",name:"Lower shelf",qty:1,a:shelfW,b:shelfD,c:t,role:"Fits between the legs; shelf elevation is derived from overall height."},
+  {id:"RF",name:"Front rail / apron",qty:1,a:innerW,b:railH,c:t,role:"Fits between the front legs directly below the top."},
+  {id:"RB",name:"Rear rail / apron",qty:1,a:innerW,b:railH,c:t,role:"Fits between the rear legs directly below the top."},
+  {id:"RL/RR",name:"Side rails / aprons",qty:2,a:innerD,b:railH,c:t,role:"Fit between the front and rear legs directly below the top."},
+  {id:"DF",name:"Drawer face",qty:1,a:drawerW,b:drawerH,c:t,role:"Sits between the front legs with a calculated side clearance."},
+  {id:"DS",name:"Drawer sides",qty:2,a:drawerD,b:drawerH-t,c:t,role:"Attach behind the drawer face; rear panel closes the box."},
+  {id:"DB",name:"Drawer back",qty:1,a:drawerW-2*t,b:drawerH-t,c:t,role:"Fits between the drawer side panels."},
+  {id:"DN",name:"Drawer bottom",qty:1,a:drawerW-2*t,b:drawerD,c:t,role:"Fits under the box side and rear panels; bottom thickness is included in total drawer height."}
  ];
- if(parts.some(p=>p.a<=0||p.b<=0||p.c<=0))return {ok:false,error:"At least one experimental panel dimension is not positive. Change the measurements."};
- return {ok:true,input,parts,warning:"Experimental only: drawer clearances, drawer-bottom support, shelf/rail elevations, joinery, and exact finished outside dimensions still require a dedicated geometry audit. Do not cut final material from this list yet."};
+ if(parts.some(p=>![p.a,p.b,p.c].every(Number.isFinite)||p.a<=0||p.b<=0||p.c<=0))
+  return {ok:false,error:"At least one panel dimension is not positive. Change the measurements."};
+ const checks={
+  outsideWidth:2*leg+W-2*leg,
+  outsideHeight:legH+t,
+  outsideDepth:2*leg+(D-2*leg),
+  shelfFitsWidth:shelfW+2*t===innerW,
+  shelfFitsDepth:shelfD+2*t===innerD,
+  drawerFaceFitsOpening:drawerW+2*clearance===innerW,
+  topCoversLegs:W>=2*leg&&D>=2*leg,
+  allPartsPositive:parts.every(p=>p.a>0&&p.b>0&&p.c>0),
+  dimensionsMatch:Math.abs((2*leg+W-2*leg)-W)<1e-8&&Math.abs((legH+t)-H)<1e-8&&Math.abs((2*leg+D-2*leg)-D)<1e-8
+ };
+ if(!Object.values(checks).every(Boolean))return {ok:false,error:"The geometry consistency checks failed. Please adjust the dimensions."};
+ return {ok:true,input,leg,railH,clearance,shelfZ,drawerW,drawerH,drawerD,parts,checks,
+  warning:"Geometry checks passed for the stated idealized construction. Glue thickness, cutting kerf, cardboard compression, drawer running clearance and physical fit still need a material test."};
 }
 function renderNightstandConcept(){
  const status=document.getElementById("nightstandStatus"),preview=document.getElementById("nightstandPreview"),list=document.getElementById("nightstandParts");
  const input={W:Number($("width").value),H:Number($("height").value),D:Number($("depth").value),t:Number($("thickness").value)};
  const r=generateNightstandConcept(input);
  if(!r.ok){status.textContent=r.error;preview.innerHTML="";list.innerHTML="";return;}
- const W=input.W,H=input.H,D=input.D;
- preview.innerHTML='<svg viewBox="0 0 360 250" role="img" aria-label="Conceptual brown nightstand with top, drawer, shelf, rails and four legs"><polygon points="72,55 235,55 294,84 131,84" fill="#d6ad83" stroke="#654126" stroke-width="2"/><polygon points="72,55 131,84 131,195 72,166" fill="#a56f46" stroke="#654126" stroke-width="2"/><polygon points="131,84 294,84 294,195 131,195" fill="#c59a70" stroke="#654126" stroke-width="2"/><polygon points="88,80 111,91 111,219 88,208" fill="#8f5c38" stroke="#654126" stroke-width="2"/><polygon points="252,80 275,91 275,219 252,208" fill="#8f5c38" stroke="#654126" stroke-width="2"/><polygon points="111,91 275,91 275,113 111,113" fill="#b78358" stroke="#654126" stroke-width="2"/><polygon points="111,117 252,117 252,154 111,154" fill="#d0a276" stroke="#654126" stroke-width="2"/><circle cx="183" cy="135" r="3.5" fill="#5c3b27"/><polygon points="111,166 252,166 275,177 134,177" fill="#e4c29f" stroke="#654126" stroke-width="2"/><polygon points="111,177 252,177 252,189 111,189" fill="#8f5c38" stroke="#654126" stroke-width="1.5"/><text x="180" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#5c3b27">NIGHTSTAND CONCEPT · NOT TO SCALE</text><text x="180" y="240" text-anchor="middle" font-size="10" fill="#5c3b27">'+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm</text></svg>';
- list.innerHTML=r.parts.map(p=>'<div class="nightstand-part"><strong>'+p.id+' — '+p.name+'</strong><span>Cut '+p.qty+' · '+fmt(p.a)+' × '+fmt(p.b)+' × '+fmt(p.c)+' mm</span></div>').join("");
- status.textContent=r.warning;
+ const {W,H,D,t}=input,{leg,railH,shelfZ,drawerW,drawerH,drawerD}=r;
+ // Dimension-scaled isometric projection: all visible component positions derive from W/H/D.
+ const scale=Math.min(210/(W+D*.55),155/(H+D*.22));
+ const P=(x,y,z)=>[180+(x-W/2)*scale+(y-D/2)*scale*.5,205-z*scale-(y-D/2)*scale*.22];
+ const points=arr=>arr.map(v=>P(...v).map(n=>n.toFixed(2)).join(",")).join(" ");
+ const poly=(pts,fill,stroke="#654126",width=1.2)=>'<polygon points="'+points(pts)+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+width+'" stroke-linejoin="round"/>';
+ const slab=(x,y,z,w,d,h,front,top,side)=>{
+  const a=[x,y,z],b=[x+w,y,z],c=[x+w,y+d,z],dd=[x,y+d,z],A=[x,y,z+h],B=[x+w,y,z+h],C=[x+w,y+d,z+h],D0=[x,y+d,z+h];
+  return poly([A,B,C,D0],top)+poly([b,c,C,B],side)+poly([a,b,B,A],front);
+ };
+ let svg='<svg viewBox="0 0 360 270" role="img" aria-label="Dimension-scaled isometric nightstand concept with four legs, top, shelf, rails and drawer"><text x="180" y="16" text-anchor="middle" font-size="10" font-weight="700" fill="#5c3b27">NIGHTSTAND · DIMENSION-SCALED CONCEPT</text>';
+ // Rear and side legs, followed by shelf/rails, front legs, drawer face and top.
+ svg+=slab(0,D-leg,0,leg,leg,H-t,"#8f5c38","#b78358","#75482d");
+ svg+=slab(W-leg,D-leg,0,leg,leg,H-t,"#8f5c38","#b78358","#75482d");
+ svg+=slab(0,0,0,leg,leg,H-t,"#a56f46","#c08d60","#75482d");
+ svg+=slab(W-leg,0,0,leg,leg,H-t,"#a56f46","#c08d60","#75482d");
+ svg+=slab(leg,leg,shelfZ,W-2*leg,D-2*leg,t,"#b78358","#d7b18c","#8f5c38");
+ const zRail=H-t-railH;
+ svg+=slab(leg,0,zRail,W-2*leg,t,railH,"#a56f46","#c08d60","#75482d");
+ svg+=slab(leg,D-t,zRail,W-2*leg,t,railH,"#8f5c38","#b78358","#75482d");
+ svg+=slab(0,leg,zRail,t,D-2*leg,railH,"#8f5c38","#b78358","#75482d");
+ svg+=slab(W-t,leg,zRail,t,D-2*leg,railH,"#8f5c38","#b78358","#75482d");
+ const drawerZ=shelfZ+t+Math.max(t,(H-t-railH-(shelfZ+t)-drawerH)/2);
+ svg+=slab(leg+ r.clearance,0,drawerZ,drawerW,t,drawerH,"#c08d60","#d7b18c","#8f5c38");
+ svg+=slab(leg+ r.clearance,t,drawerZ,drawerW-2*t,drawerD,drawerH-t,"#a56f46","#c08d60","#75482d");
+ svg+=slab(0,0,H-t,W,D,t,"#c59a70","#e4c29f","#9b6843");
+ svg+='<text x="180" y="258" text-anchor="middle" font-size="10" fill="#5c3b27">'+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm</text></svg>';
+ preview.innerHTML=svg;
+ list.innerHTML=r.parts.map(p=>'<div class="nightstand-part"><strong>'+p.id+' — '+p.name+'</strong><span>Cut '+p.qty+' · '+fmt(p.a)+' × '+fmt(p.b)+' × '+fmt(p.c)+' mm</span><p class="muted">'+p.role+'</p></div>').join("");
+ status.textContent="Idealized geometry checks passed: outside size "+fmt(r.checks.outsideWidth)+" × "+fmt(r.checks.outsideHeight)+" × "+fmt(r.checks.outsideDepth)+" mm. "+r.warning;
 }
 const nightstandButton=document.getElementById("generateNightstand");
 if(nightstandButton)nightstandButton.addEventListener("click",renderNightstandConcept);
