@@ -8,6 +8,9 @@ test("initial plan renders coherent cut list, 3D faces, patterns and panel views
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(appUrl);
+  await page.locator("#designType").selectOption("nightstand");
+  await page.locator("#designType").selectOption("nightstand");
+  await page.locator("#designType").selectOption("nightstand");
   await expect(page.locator("#error")).toHaveText("");
   await expect(page.locator("#cutRows tr")).toHaveCount(4);
   await expect(page.locator("#pieceList .piece")).toHaveCount(4);
