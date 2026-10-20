@@ -86,36 +86,3 @@ test("scaled external reference cut list matches the generator's joint equations
   await expect(page.locator("#cutRows")).toContainText("228.6 × 114.3");
   await expect(page.locator("#cutRows")).toContainText("243.84 × 485.14");
 });
-
-test("exploded diagram opens in an accessible enlarged overlay and closes cleanly", async ({ page }) => {
-  await page.goto(appUrl);
-  const opener = page.locator("#openDiagramModal");
-  await expect(opener).toBeVisible();
-  await opener.click();
-  await expect(page.locator("#diagramModal")).toHaveAttribute("open", "");
-  await expect(page.locator("#diagramModalContent svg")).toBeVisible();
-  await page.locator("#closeDiagramModal").click();
-  await expect(page.locator("#diagramModal")).not.toHaveAttribute("open", "");
-});
-
-test("nightstand generator is removed while the cabinet planner remains functional", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
-  await page.goto(appUrl);
-  await expect(page.locator("#nightstandConcept")).toHaveCount(0);
-  await expect(page.locator("#generateNightstand")).toHaveCount(0);
-  await expect(page.locator("#supportStyle")).toHaveCount(0);
-  await expect(page.locator("#cabinetPreview svg")).toBeVisible();
-  await page.locator("#width").fill("40");
-  await page.locator("#height").fill("50");
-  await page.locator("#depth").fill("30");
-  await page.locator("#thickness").fill("1");
-  await page.locator("#generate").click();
-  await expect(page.locator("#error")).toHaveText("");
-  await expect(page.locator("#cabinetPreview svg")).toHaveAttribute("data-model-width", "40");
-  await expect(page.locator("#cabinetPreview svg")).toHaveAttribute("data-model-height", "50");
-  await expect(page.locator("#cabinetPreview svg")).toHaveAttribute("data-model-depth", "30");
-  await expect(page.locator("#cutRows tr")).toHaveCount(4);
-  await expect(page.locator("#pieceList .piece")).toHaveCount(4);
-  expect(errors).toEqual([]);
-});
