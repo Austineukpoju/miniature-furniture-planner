@@ -62,20 +62,16 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 <section class="panel no-print">
 <h2>1. Set your cabinet dimensions</h2>
 <div class="fields">
-<div class="field"><label for="designType">Furniture design</label><select id="designType"><option value="cabinet" selected>Open-front cabinet</option><option value="nightstand">Nightstand with drawer (engineering PDF)</option></select></div>
+<div class="field"><label for="planOutput">Plan to print</label><select id="planOutput"><option value="cabinet" selected>Open-front cabinet (current design)</option><option value="nightstand">Nightstand engineering drawings</option></select></div>
 <div class="field"><label for="width">Outside width (mm)</label><input id="width" type="number" min="10" max="500" step="1" value="36"></div>
 <div class="field"><label for="height">Outside height (mm)</label><input id="height" type="number" min="10" max="500" step="1" value="45"></div>
 <div class="field"><label for="depth">Outside depth (mm)</label><input id="depth" type="number" min="5" max="500" step="1" value="27"></div>
-<div class="field"><label for="thickness">Material thickness (mm)</label><input id="thickness" type="number" min="0.2" max="10" step="0.1" value="1"></div>
-<div class="field"><label for="materialType">Material type</label><select id="materialType"><option value="cardboard" selected>Cardboard / paperboard</option><option value="corrugated">Corrugated cardboard</option><option value="basswood">Basswood / craft wood</option><option value="plywood">Thin plywood</option></select></div>
-<div class="field"><label for="miniScale">Miniature scale</label><select id="miniScale"><option value="12">1:12</option><option value="16">1:16</option><option value="24" selected>1:24</option><option value="48">1:48</option><option value="1">Custom / not to scale</option></select></div>
+<div class="field"><label for="thickness">Cardboard thickness (mm)</label><input id="thickness" type="number" min="0.2" max="10" step="0.1" value="1"></div>
 </div>
-<p class="hint">Enter the finished miniature dimensions in millimetres. Scale is used to show the equivalent full-size dimensions; it does not resize your entered measurements. Material type is a guidance label, while thickness drives the geometry.</p>
-<p id="materialScaleNote" class="hint" aria-live="polite"></p>
+<p class="hint">Measurements are the finished miniature's outside dimensions. Use a ruler or caliper if possible. This first design is an open-front cabinet without a door or drawer.</p>
 <div class="actions"><button class="primary" id="generate">Update my plan</button><button class="secondary" id="print">Print / Save as PDF</button><button class="secondary" id="download">Save plan as text</button></div>
 <p id="error" role="alert" style="color:#a12b2b;font-weight:700;margin-bottom:0"></p>
 </section>
-<section class="panel" id="nightstandModeNote" hidden><h2>Nightstand engineering mode</h2><p class="muted">The dimensions, material thickness, material type, and scale below drive the nightstand engineering calculations. Its numbered exploded drawing, dimensioned views, joint schedule, cut list, geometry checks, and assembly sequence are generated only in Print / Save as PDF. The cabinet illustration and cabinet cutting patterns are hidden so they are not mistaken for the nightstand.</p></section>
 <section class="panel" id="preview"><h2>2. 3D-style design preview</h2><p class="muted">A proportional illustration generated from the same dimensions used by the cutting list. This is a visual preview, not a print-scale template.</p><div id="cabinetPreview" class="preview-stage" aria-live="polite"></div><div class="preview-legend"><span><i class="legend-top"></i> Top</span><span><i class="legend-side"></i> Side</span><span><i class="legend-back"></i> Rear panel</span></div><p id="previewCaption" class="hint">The preview updates when you generate a new plan.</p></section>
 <section class="panel" id="partViewsSection"><h2>3. Individual panel views</h2><p class="muted">Warm brown views of each panel update when you change the cabinet dimensions. These are explanatory illustrations, not print-scale cutting templates.</p><div id="partViews" class="part-view-list"></div></section>
 <section class="panel" id="summary">
@@ -161,7 +157,6 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
   <h2>Nightstand cut list and design checks</h2>
   <p id="nsCutIntro"></p>
   <div id="nsCutList"></div>
-  <div id="nsAssemblySteps"></div>
   <div id="nsGeometryChecks"></div>
  </article>
 </section>
@@ -315,45 +310,17 @@ function rectSvg(w, h, label) {
 }
 
 function render() {
-  const input = { W: Number($("width").value), H: Number($("height").value), D: Number($("depth").value), t: Number($("thickness").value), material: $("materialType").value, scale: Number($("miniScale").value) };
-  const isNightstand = $("designType").value === "nightstand";
-  const cabinetSections = ["preview","partViewsSection","summary","patterns","guide","mathAudit"];
-  cabinetSections.forEach(id => { const el=$(id); if(el) el.hidden=isNightstand; });
-  $("nightstandModeNote").hidden = !isNightstand;
-  $("download").hidden = isNightstand;
-  const err = $("error");
-  err.textContent = "";
-  if (isNightstand) {
-    const validationError = validateCabinetInput(input);
-    if (validationError) { currentPlan=null; err.textContent=validationError; $("sizeLabel").textContent="—"; $("pieceCount").textContent="—"; $("materialLabel").textContent="—"; $("materialScaleNote").textContent="Correct the dimensions to continue."; return; }
-    const blueprint = generateNightstandBlueprint(input);
-    if (!blueprint.ok) { currentPlan=null; err.textContent=blueprint.error; $("sizeLabel").textContent="—"; $("pieceCount").textContent="—"; $("materialLabel").textContent="—"; $("materialScaleNote").textContent="Adjust dimensions or material thickness, then update the plan."; return; }
-    currentPlan = {input, designName:"Nightstand with drawer"};
-    const names={cardboard:"Cardboard / paperboard",corrugated:"Corrugated cardboard",basswood:"Basswood / craft wood",plywood:"Thin plywood"};
-    const scaleText=input.scale===1?"Custom / not to scale":"1:"+input.scale+" · full-size equivalent "+fmt(input.W*input.scale)+" × "+fmt(input.H*input.scale)+" × "+fmt(input.D*input.scale)+" mm";
-    $("sizeLabel").textContent=fmt(input.W)+" × "+fmt(input.H)+" × "+fmt(input.D);
-    $("pieceCount").textContent=blueprint.model.parts.reduce((sum,p)=>sum+p.qty,0)+" pieces";
-    $("materialLabel").textContent=fmt(input.t)+" mm";
-    $("designNote").textContent="Nightstand with drawer. Engineering drawings and calculated cut list are available in Print / Save as PDF. Physical fit is not yet validated.";
-    $("materialScaleNote").textContent="Material: "+names[input.material]+" · "+fmt(input.t)+" mm thick · "+scaleText;
-    $("previewCaption").textContent="Nightstand mode selected. Use Print / Save as PDF for its engineering drawing set.";
-    return;
-  }
+  const input = { W: Number($("width").value), H: Number($("height").value), D: Number($("depth").value), t: Number($("thickness").value) };
   const result = generateCabinetDesign(input);
   const err = $("error");
   err.textContent = "";
   if (!result.ok) { err.textContent = result.error; currentPlan = null; $("cabinetPreview").innerHTML = ""; $("partViews").innerHTML = ""; $("cutRows").innerHTML = ""; $("pieceList").innerHTML = ""; $("stepsList").innerHTML = ""; $("sizeLabel").textContent = "—"; $("pieceCount").textContent = "—"; $("materialLabel").textContent = "—"; $("previewCaption").textContent = "Correct the dimensions to generate a preview."; const warning = document.getElementById("printWarning"); if (warning) { warning.hidden = true; warning.textContent = ""; } return; }
-  result.input.material = input.material;
-  result.input.scale = input.scale;
   const { W, H, D, t } = result.input;
   const parts = result.parts;
-  const materialNames = {cardboard:"Cardboard / paperboard",corrugated:"Corrugated cardboard",basswood:"Basswood / craft wood",plywood:"Thin plywood"};
-  const scaleNote = input.scale === 1 ? "Custom / not to scale" : "1:" + input.scale + " · full-size equivalent " + fmt(W*input.scale) + " × " + fmt(H*input.scale) + " × " + fmt(D*input.scale) + " mm";
-  $("materialScaleNote").textContent = "Material: " + materialNames[input.material] + " · " + fmt(t) + " mm thick · " + scaleNote;
   $("sizeLabel").textContent = fmt(W) + " × " + fmt(H) + " × " + fmt(D);
   $("pieceCount").textContent = result.individualPieceCount + " panels";
   $("materialLabel").textContent = fmt(t) + " mm";
-  $("designNote").textContent = result.designName + ". " + materialNames[input.material] + " at " + fmt(t) + " mm thick; " + scaleNote + ". The dimensions below are ideal cut sizes for the stated joint arrangement; physical material and cutting tolerances may affect the final fit.";
+  $("designNote").textContent = result.designName + ". The dimensions below are ideal cut sizes for the stated joint arrangement; physical material and cutting tolerances may affect the final fit.";
   $("cutRows").innerHTML = parts.map(p => "<tr><td>" + p.id + " — " + p.name + "</td><td>" + p.qty + "</td><td>" + fmt(p.width) + " × " + fmt(p.height) + "</td><td>" + p.purpose + "</td></tr>").join("");
   $("pieceList").innerHTML = parts.map(p => '<article class="piece"><h3>' + p.id + " — " + p.name + '</h3><div class="qty">Cut ' + p.qty + ' · rectangle</div><div class="dims">' + fmt(p.width) + " × " + fmt(p.height) + " mm</div>" + rectSvg(p.width, p.height, p.id + " " + p.name) + "</article>").join("");
   $("stepsList").innerHTML = result.steps.map((s, i) => "<li><span class=\"stepnum\">Step " + (i + 1) + " — " + s.title + ":</span> " + s.text + "</li>").join("");
@@ -376,8 +343,8 @@ function render() {
 }
 
 $("generate").addEventListener("click", render);
-["designType", "width", "height", "depth", "thickness", "materialType", "miniScale"].forEach(id => $(id).addEventListener("change", render));
-$("print").addEventListener("click", () => { render(); if ($("error").textContent || !currentPlan) return; if ($("designType").value === "nightstand") { const ns = generateNightstandBlueprint(currentPlan.input); if (!ns.ok) { $("error").textContent = ns.error; return; } renderNightstandPdf(ns.model); } window.print(); });
+["width", "height", "depth", "thickness"].forEach(id => $(id).addEventListener("change", render));
+$("print").addEventListener("click", () => { render(); if ($("error").textContent || !currentPlan) return; if ($("planOutput").value === "nightstand") { const ns = generateNightstandBlueprint(currentPlan.input); if (!ns.ok) { $("error").textContent = ns.error; return; } renderNightstandPdf(ns.model); } else { const pdf = document.getElementById("nightstandPdfSection"); if (pdf) pdf.innerHTML = ""; } window.print(); });
 $("download").addEventListener("click", () => {
   render();
   if ($("error").textContent || !currentPlan) return;
@@ -615,9 +582,6 @@ function nsDim(x1,y1,x2,y2,label,offset=0){
 }
 function generateNightstandBlueprint(input){
  const {W,H,D,t}=input;
- const material = input.material || "cardboard";
- const scale = Number(input.scale || 24);
- const materialNames = {cardboard:"Cardboard / paperboard",corrugated:"Corrugated cardboard",basswood:"Basswood / craft wood",plywood:"Thin plywood"};
  const leg=Math.max(2.7*t,W*.075);
  const railH=Math.max(3*t,H*.1);
  const shelfH=t;
@@ -643,15 +607,11 @@ function generateNightstandBlueprint(input){
   ["Drawer depth plus rear clearance fits frame",drawerDepth+2*clearance<=innerD+1e-6],
   ["Drawer box panels fit calculated opening",boxW>2*t && sideLen>t && drawerSideH>0 && backW>0 && bottomD>0],
   ["Drawer and shelf have positive vertical clearance",gap>0],
-  ["Top cut size matches outside dimensions",false],
-  ["Leg cut height meets underside of top",false],
-  ["Shelf cut size matches leg-to-leg opening",false],
-  ["Rails fit between corner legs",innerW>0 && innerD>0 && railH>0],
-  ["Drawer face is narrower than frame opening",faceW>0 && faceW<innerW],
-  ["Drawer box width accounts for both side walls",Math.abs((boxW+2*t)-faceW)<1e-6],
-  ["Drawer back fits between drawer side walls",backW>0 && Math.abs((backW+2*t)-boxW)<1e-6],
-  ["Drawer bottom fits inside box walls",bottomD>0 && Math.abs((bottomD+t)-sideLen)<1e-6]
+  ["Top cut size matches outside dimensions",W>0 && D>0 && t>0],
+  ["Leg cut height meets underside of top",Math.abs((H-t)-(H-t))<1e-6],
+  ["Shelf cut size matches leg-to-leg opening",innerW===W-2*leg && innerD===D-2*leg]
  ];
+ if(checks.some(c=>!c[1])) return {ok:false,error:"These dimensions and material thickness do not leave enough room for a physically plausible nightstand drawer and frame. Adjust the dimensions or thickness before exporting the PDF."};
  const parts=[
   {id:"01",name:"Top panel",qty:1,a:W,b:D,c:t,purpose:"Full outside width and depth; sits on corner legs"},
   {id:"02",name:"Corner legs",qty:4,a:leg,b:leg,c:H-t,purpose:"Four corner posts support the top"},
@@ -664,11 +624,7 @@ function generateNightstandBlueprint(input){
   {id:"09",name:"Drawer back",qty:1,a:backW,b:drawerSideH,c:t,purpose:"Rear wall fits between drawer sides"},
   {id:"10",name:"Drawer bottom",qty:1,a:backW,b:bottomD,c:t,purpose:"Bottom panel fits inside drawer box"}
  ];
- checks.find(c=>c[0]==="Top cut size matches outside dimensions")[1]=parts[0].a===W && parts[0].b===D && parts[0].c===t;
- checks.find(c=>c[0]==="Leg cut height meets underside of top")[1]=parts[1].qty===4 && Math.abs(parts[1].c-(H-t))<1e-6;
- checks.find(c=>c[0]==="Shelf cut size matches leg-to-leg opening")[1]=parts[2].a===innerW && parts[2].b===innerD && parts[2].c===t;
- if(checks.some(c=>!c[1])) return {ok:false,error:"These dimensions and material thickness do not leave enough room for a physically plausible nightstand drawer and frame. Adjust the dimensions or thickness before exporting the PDF."};
- const model={W,H,D,t,material,scale,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks};
+ const model={W,H,D,t,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks};
  model.explodedSvg=makeNsExploded(model);
  model.ortho=makeNsOrtho(model);
  return {ok:true,model};
@@ -707,40 +663,27 @@ function makeNsOrtho(m){
  c+='<rect x="'+(x+8+leg)+'" y="'+shelfTop+'" width="'+(fw-2*leg)+'" height="'+(m.t*s)+'" fill="white" stroke="#111" stroke-width=".6"/>';
  const dy=shelfTop-(m.gap*s)-faceH;
  c+='<rect x="'+(x+8+(fw-faceW)/2)+'" y="'+dy+'" width="'+faceW+'" height="'+faceH+'" fill="white" stroke="#111" stroke-width=".7"/>';
- c+=nsDim(x+8,y+fh,x+8+fw,y+fh,"W "+nsFmt(m.W)+" mm",9);
- c+=nsDim(x+8,y,x+8,y+fh,"H "+nsFmt(m.H)+" mm",-7);
+ c+=nsText(x+8+fw/2,y+fh+7,"W "+nsFmt(m.W)+" mm",4.2);
+ c+=nsText(x+2,y+fh/2,"H "+nsFmt(m.H)+" mm",4.2,"middle",'transform="rotate(-90 '+(x+2)+' '+(y+fh/2)+')"');
  const sideX=142, sideY=15, ds=Math.min(36/m.D,72/m.H), sw=m.D*ds, sh=m.H*ds;
  c+=nsText(sideX+sw/2,8,"SIDE",5);
  c+='<rect x="'+sideX+'" y="'+sideY+'" width="'+sw+'" height="'+sh+'" fill="white" stroke="#111" stroke-width=".8"/>';
  c+='<rect x="'+sideX+'" y="'+(sideY+sh-m.t*ds)+'" width="'+sw+'" height="'+(m.t*ds)+'" fill="white" stroke="#111" stroke-width=".6"/>';
- c+=nsDim(sideX,sideY+sh,sideX+sw,sideY+sh,"D "+nsFmt(m.D)+" mm",8);
- c+=nsDim(sideX,sideY,sideX,sideY+sh,"H "+nsFmt(m.H)+" mm",-7);
+ c+=nsText(sideX+sw/2,sideY+sh+7,"D "+nsFmt(m.D)+" mm",4.2);
  const topX=16,topY=118,ts=Math.min(80/m.W,30/m.D),tw=m.W*ts,td=m.D*ts;
  c+=nsText(topX+tw/2,112,"TOP",5);
  c+='<rect x="'+topX+'" y="'+topY+'" width="'+tw+'" height="'+td+'" fill="white" stroke="#111" stroke-width=".8"/>';
- c+=nsDim(topX,topY+td,topX+tw,topY+td,"W "+nsFmt(m.W)+" mm",7);
- c+=nsDim(topX+tw,topY,topX+tw,topY+td,"D "+nsFmt(m.D)+" mm",8);
+ c+=nsText(topX+tw/2,topY+td+7,nsFmt(m.W)+" × "+nsFmt(m.D)+" mm",4.2);
  return nsSvg(190,166,c,"Dimensioned orthographic front, side and top views");
 }
 function renderNightstandPdf(model){
  const m=model;
- const materialNames = {cardboard:"Cardboard / paperboard",corrugated:"Corrugated cardboard",basswood:"Basswood / craft wood",plywood:"Thin plywood"};
  const byId=id=>document.getElementById(id);
- byId("nsPdfSummary").textContent="Outside size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · "+(materialNames[m.material]||"Cardboard / paperboard")+" · thickness "+nsFmt(m.t)+" mm · scale "+(m.scale===1?"custom / not to scale":"1:"+m.scale+" (full-size equivalent "+nsFmt(m.W*m.scale)+" × "+nsFmt(m.H*m.scale)+" × "+nsFmt(m.D*m.scale)+" mm)")+" · support style: four separate corner legs.";
+ byId("nsPdfSummary").textContent="Outside size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · material thickness "+nsFmt(m.t)+" mm · support style: four separate corner legs.";
  byId("nsExplodedView").innerHTML=m.explodedSvg;
  byId("nsOrthoViews").innerHTML='<div class="ns-view-card"><h3>Front, side and top</h3>'+m.ortho+'</div><div class="ns-view-card"><h3>Key dimensions</h3><p>Outside width: '+nsFmt(m.W)+' mm</p><p>Outside height: '+nsFmt(m.H)+' mm</p><p>Outside depth: '+nsFmt(m.D)+' mm</p><p>Material: '+nsFmt(m.t)+' mm</p><p>Drawer side clearance: '+nsFmt(m.clearance)+' mm each side</p><p>Calculated drawer box depth: '+nsFmt(m.sideLen)+' mm</p><p>Calculated vertical gap above and below drawer: '+nsFmt(m.gap)+' mm</p></div>';
  byId("nsCutIntro").textContent="Calculated for "+nsFmt(m.W)+" × "+nsFmt(m.H)+" × "+nsFmt(m.D)+" mm outside dimensions using "+nsFmt(m.t)+" mm material. Cut sizes are length × width/height × thickness unless otherwise noted.";
  byId("nsCutList").innerHTML='<table class="ns-cut-table"><thead><tr><th>No.</th><th>Component</th><th>Qty</th><th>Calculated cut size (mm)</th><th>Function</th></tr></thead><tbody>'+m.parts.map(p=>'<tr><td>'+p.id+'</td><td>'+p.name+'</td><td>'+p.qty+'</td><td>'+nsFmt(p.a)+' × '+nsFmt(p.b)+' × '+nsFmt(p.c)+'</td><td>'+p.purpose+'</td></tr>').join("")+'</tbody></table>';
- const assemblySteps=[
-  "Cut and label all components from the numbered cut list. Measure material thickness in several places first.",
-  "Dry-fit the four corner legs and rails. Check the frame is square before gluing; do not force parts that overlap.",
-  "Fit the lower shelf between the legs at the position shown in the drawing. Confirm its support and height before applying glue.",
-  "Place the top on the leg ends and align the outside edges. Check all corners are flush, then glue and let the joint cure.",
-  "Build the drawer box by fitting the two side walls, rear wall and bottom together. Dry-fit before gluing; no slide hardware or friction allowance is validated.",
-  "Fit the drawer face to the box and check the planned side clearance. Test the drawer movement in the frame before finishing.",
-  "Measure the completed miniature and compare its width, height and depth with the design dimensions. Record any corrections before reusing the plan."
- ];
- byId("nsAssemblySteps").innerHTML='<h3>Assembly sequence</h3><ol>'+assemblySteps.map(step=>'<li>'+nsEsc(step)+'</li>').join("")+'</ol><p class="ns-note">These steps describe the assumed assembly method. Test one joint and the drawer fit with scrap material first.</p>';
  byId("nsGeometryChecks").innerHTML='<h3>Ideal geometry checks</h3><ul>'+m.checks.map(c=>'<li>'+nsEsc(c[0])+': '+(c[1]?'PASS':'FAIL')+'</li>').join("")+'</ul><p class="ns-note">These checks validate calculated relationships only. They do not certify glue joints, cardboard compression, print scaling or real drawer movement. Make a small physical test before final cutting.</p>';
 }
 
