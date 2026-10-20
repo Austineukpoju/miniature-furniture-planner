@@ -377,7 +377,7 @@ function render() {
 
 $("generate").addEventListener("click", render);
 ["designType", "width", "height", "depth", "thickness", "materialType", "miniScale"].forEach(id => $(id).addEventListener("change", render));
-$("print").addEventListener("click", () => { render(); if ($("error").textContent || !currentPlan) return; const ns = generateNightstandBlueprint(currentPlan.input); if (!ns.ok) { $("error").textContent = ns.error; return; } renderNightstandPdf(ns.model); window.print(); });
+$("print").addEventListener("click", () => { render(); if ($("error").textContent || !currentPlan) return; if ($("designType").value === "nightstand") { const ns = generateNightstandBlueprint(currentPlan.input); if (!ns.ok) { $("error").textContent = ns.error; return; } renderNightstandPdf(ns.model); } window.print(); });
 $("download").addEventListener("click", () => {
   render();
   if ($("error").textContent || !currentPlan) return;
