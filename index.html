@@ -28,6 +28,31 @@ table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left
 footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 @media(min-width:680px){.fields{grid-template-columns:repeat(4,minmax(0,1fr))}.piece-list{grid-template-columns:repeat(3,minmax(0,1fr))}main{padding-top:24px}}
 @media print{@page{size:auto;margin:12mm}body{background:#fff;color:#111;font-size:11pt}header{background:#fff;color:#111;padding:0 0 12px;border-radius:0;border-bottom:2px solid #111}header p{color:#333}.eyebrow{color:#111}main{padding:0}.panel{background:#fff;box-shadow:none;border:1px solid #999;break-inside:avoid;padding:12px;margin-bottom:10px}h2,h3{color:#111}.actions,.no-print,footer{display:none!important}.piece{background:#fff;break-inside:avoid;page-break-inside:avoid;border:1px solid #aaa;margin:0 0 8mm}.piece-list{display:block}.piece svg{display:block;max-width:none;width:auto;height:auto;margin:8px 0 0;overflow:visible}.notice{background:#fff;border:1px solid #777;break-inside:avoid}h1{font-size:24pt}th,td{border-color:#bbb}.stat{background:#fff;border:1px solid #bbb}.stat strong{color:#111}.muted,.qty,.hint{color:#333}}
+
+/* PDF-only nightstand blueprint: never shown in the normal app interface. */
+#nightstandPdfSection{display:none}
+.ns-pdf-page{background:#fff;color:#111;padding:10mm;min-height:245mm;font-family:Arial,Helvetica,sans-serif}
+.ns-pdf-page h2,.ns-pdf-page h3{color:#111;margin:0 0 4mm}
+.ns-pdf-page p{margin:2mm 0 4mm}
+.ns-kicker{font-size:9pt;letter-spacing:.12em;text-transform:uppercase}
+.ns-drawing{width:100%;height:auto;display:block;max-height:155mm}
+.ns-views{display:grid;grid-template-columns:1fr 1fr;gap:5mm}
+.ns-view-card{border:1px solid #aaa;padding:4mm;break-inside:avoid}
+.ns-view-card svg{width:100%;height:auto;display:block}
+.ns-cut-table{width:100%;border-collapse:collapse;font-size:9pt}
+.ns-cut-table th,.ns-cut-table td{border:1px solid #555;padding:2mm;text-align:left}
+.ns-cut-table th{background:#eee}
+.ns-note{font-size:9pt;border:1px solid #777;padding:3mm}
+.ns-part-label{font-size:9pt}
+@media print{
+ #nightstandPdfSection{display:block!important}
+ #nightstandPdfSection .ns-pdf-page{display:block;break-before:page;page-break-before:always;break-inside:auto;page-break-inside:auto;margin:0;padding:0;min-height:0}
+ #nightstandPdfSection .ns-drawing{max-height:180mm}
+ #nightstandPdfSection .ns-views{grid-template-columns:1fr 1fr}
+ #nightstandPdfSection .ns-view-card{break-inside:avoid}
+ #nightstandPdfSection .ns-cut-table{font-size:8pt}
+}
+@media screen{#nightstandPdfSection{display:none!important}}
 </style>
 </head>
 <body>
@@ -90,6 +115,35 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 <li>Dry-fit the parts before applying glue. If the joints do not sit square, pause and adjust the plan rather than forcing them.</li>
 <li>Allow glue to dry fully, then check the outside width, height and depth.</li>
 </ul>
+</section>
+
+<section id="nightstandPdfSection" aria-hidden="true">
+ <article class="ns-pdf-page">
+  <p class="ns-kicker">Miniature Furniture Planner · PDF-only engineering supplement</p>
+  <h2>Nightstand — finished design</h2>
+  <p id="nsPdfSummary"></p>
+  <div id="nsFinishedView"></div>
+  <p class="ns-note">Engineering line drawing generated from the dimensions entered in the cabinet planner. Diagram views are schematic and not print-scale; use the dimensioned cut list for sizes. Cardboard, glue and cutting tolerances require a physical test.</p>
+ </article>
+ <article class="ns-pdf-page">
+  <p class="ns-kicker">Construction layout</p>
+  <h2>Exploded view — numbered components</h2>
+  <p>Components are separated for identification. The part numbers match the cut list on the following page.</p>
+  <div id="nsExplodedView"></div>
+ </article>
+ <article class="ns-pdf-page">
+  <p class="ns-kicker">Orthographic drawings</p>
+  <h2>Front, side and top views</h2>
+  <p>Overall dimensions are shown in millimetres. Component sizes are calculated from the same model as the cut list.</p>
+  <div id="nsOrthoViews" class="ns-views"></div>
+ </article>
+ <article class="ns-pdf-page">
+  <p class="ns-kicker">Calculated component schedule</p>
+  <h2>Nightstand cut list and design checks</h2>
+  <p id="nsCutIntro"></p>
+  <div id="nsCutList"></div>
+  <div id="nsGeometryChecks"></div>
+ </article>
 </section>
 </main>
 <div class="image-modal" id="diagramModal" role="dialog" aria-modal="true" aria-labelledby="diagramModalTitle"><div class="image-modal-inner"><div class="image-modal-top"><h2 id="diagramModalTitle">Exploded assembly — enlarged view</h2><button type="button" class="image-modal-close" id="closeDiagramModal">Close ✕</button></div><div class="image-modal-content" id="diagramModalContent"></div><p class="muted">Enlarged view for inspection only. Use the dimensioned cut list for measurements.</p></div></div>
@@ -275,7 +329,7 @@ function render() {
 
 $("generate").addEventListener("click", render);
 ["width", "height", "depth", "thickness"].forEach(id => $(id).addEventListener("change", render));
-$("print").addEventListener("click", () => { render(); if (!$("error").textContent && currentPlan) window.print(); });
+$("print").addEventListener("click", () => { render(); if ($("error").textContent || !currentPlan) return; const ns = generateNightstandBlueprint(currentPlan.input); if (!ns.ok) { $("error").textContent = ns.error; return; } renderNightstandPdf(ns.model); window.print(); });
 $("download").addEventListener("click", () => {
   render();
   if ($("error").textContent || !currentPlan) return;
@@ -493,6 +547,148 @@ function openExplodedModal(){const source=document.querySelector("#partViews .ex
 function closeExplodedModal(){const modal=document.getElementById("diagramModal");if(modal)modal.removeAttribute("open");const opener=document.getElementById("openDiagramModal");if(opener)opener.focus();}
 document.addEventListener("click",e=>{if(e.target.closest("#openDiagramModal"))openExplodedModal();if(e.target.closest("#closeDiagramModal"))closeExplodedModal();if(e.target.id==="diagramModal")closeExplodedModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeExplodedModal();});
+
+function nsFmt(n){return Number(n.toFixed(2)).toString();}
+function nsEsc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function nsSvg(w,h,content,label){
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+nsEsc(label)+'" class="ns-drawing"><defs><marker id="nsArrow" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto-start-reverse"><path d="M0 0 L5 2.5 L0 5 z" fill="#111"/></marker></defs>'+content+'</svg>';
+}
+function nsLine(x1,y1,x2,y2,strokeWidth=".8",dash=""){
+ return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="#111" stroke-width="'+strokeWidth+'"'+(dash?' stroke-dasharray="'+dash+'"':'')+'/>';
+}
+function nsText(x,y,text,size=5,anchor="middle",extra=""){
+ return '<text x="'+x+'" y="'+y+'" fill="#111" font-family="Arial,Helvetica,sans-serif" font-size="'+size+'" text-anchor="'+anchor+'" '+extra+'>'+nsEsc(text)+'</text>';
+}
+function nsDim(x1,y1,x2,y2,label,offset=0){
+ const horizontal=Math.abs(y2-y1)<.001;
+ const c=horizontal?((y1+y2)/2+offset):((x1+x2)/2+offset);
+ if(horizontal) return nsLine(x1,y1,x1,y1+offset,".45")+nsLine(x2,y2,x2,y2+offset,".45")+nsLine(x1,y1+offset,x2,y2+offset,".45")+nsText((x1+x2)/2,y1+offset-1,label,4.2);
+ return nsLine(x1,y1,x1+offset,y1,".45")+nsLine(x2,y2,x2+offset,y2,".45")+nsLine(x1+offset,y1,x2+offset,y2,".45")+nsText(x1+offset-1,(y1+y2)/2,label,4.2,"middle",'transform="rotate(-90 '+(x1+offset-1)+' '+((y1+y2)/2)+')"');
+}
+function generateNightstandBlueprint(input){
+ const {W,H,D,t}=input;
+ const leg=Math.max(2.7*t,W*.075);
+ const railH=Math.max(3*t,H*.1);
+ const shelfH=t;
+ const drawerFaceH=Math.min(H*.2,H*.25);
+ const clearance=Math.max(.5*t,.2);
+ const innerW=W-2*leg, innerD=D-2*leg;
+ const faceW=innerW-2*clearance;
+ const boxW=faceW-2*t;
+ const drawerDepth=innerD-2*clearance;
+ const sideLen=drawerDepth-t;
+ const drawerSideH=drawerFaceH-2*t;
+ const backW=boxW-2*t;
+ const bottomD=sideLen-t;
+ const shelfY=H*.35;
+ const topBottom=H-t;
+ const upperRailBottom=topBottom-railH;
+ const shelfTop=shelfY+shelfH;
+ const gap=(upperRailBottom-shelfTop-drawerFaceH)/2;
+ const checks=[
+  ["Positive part sizes",[leg,innerW,innerD,faceW,boxW,sideLen,drawerSideH,backW,bottomD].every(n=>n>0)],
+  ["Legs fit inside outside dimensions",2*leg<W && 2*leg<D],
+  ["Drawer fits between legs",faceW+2*clearance<=innerW+1e-6 && drawerDepth+2*clearance<=innerD+1e-6],
+  ["Drawer and shelf have positive vertical clearance",gap>0],
+  ["Top matches outside width and depth",Math.abs(W-W)<1e-6 && Math.abs(D-D)<1e-6]
+ ];
+ if(checks.some(c=>!c[1])) return {ok:false,error:"These dimensions and material thickness do not leave enough room for a physically plausible nightstand drawer and frame. Adjust the dimensions or thickness before exporting the PDF."};
+ const parts=[
+  {id:"01",name:"Top panel",qty:1,a:W,b:D,c:t,purpose:"Full outside width and depth; sits on corner legs"},
+  {id:"02",name:"Corner legs",qty:4,a:leg,b:leg,c:H-t,purpose:"Four corner posts support the top"},
+  {id:"03",name:"Lower shelf",qty:1,a:innerW,b:innerD,c:t,purpose:"Shelf fits between the four legs"},
+  {id:"04",name:"Front rail / apron",qty:1,a:innerW,b:railH,c:t,purpose:"Front support directly below the tabletop"},
+  {id:"05",name:"Rear rail / apron",qty:1,a:innerW,b:railH,c:t,purpose:"Rear support directly below the tabletop"},
+  {id:"06",name:"Side rails / aprons",qty:2,a:innerD,b:railH,c:t,purpose:"Left and right support rails below the tabletop"},
+  {id:"07",name:"Drawer face",qty:1,a:faceW,b:drawerFaceH,c:t,purpose:"Front drawer face with calculated side clearance"},
+  {id:"08",name:"Drawer sides",qty:2,a:sideLen,b:drawerSideH,c:t,purpose:"Left and right drawer box walls"},
+  {id:"09",name:"Drawer back",qty:1,a:backW,b:drawerSideH,c:t,purpose:"Rear wall fits between drawer sides"},
+  {id:"10",name:"Drawer bottom",qty:1,a:backW,b:bottomD,c:t,purpose:"Bottom panel fits inside drawer box"}
+ ];
+ const model={W,H,D,t,leg,railH,clearance,innerW,innerD,faceW,boxW,drawerDepth,sideLen,drawerFaceH,drawerSideH,backW,bottomD,shelfY,shelfTop,upperRailBottom,gap,parts,checks};
+ model.finishedSvg=makeNsFinished(model);
+ model.explodedSvg=makeNsExploded(model);
+ model.ortho=makeNsOrtho(model);
+ return {ok:true,model};
+}
+function makeNsFinished(m){
+ const s=3.1, ox=35, oy=15, w=m.W*s,h=m.H*s,d=m.D*s,l=m.leg*s,rh=m.railH*s,th=m.t*s;
+ const yTop=oy+10, yBottom=yTop+h, x1=ox+30, x2=x1+w;
+ const shelfY=yBottom-m.shelfTop*s, drawerY=yBottom-(m.shelfTop+m.gap+m.drawerFaceH)*s;
+ let c='';
+ c+='<rect x="'+(x1-l)+'" y="'+(yTop-th)+'" width="'+(w+2*l)+'" height="'+th+'" fill="white" stroke="#111" stroke-width="1.1"/>';
+ c+='<rect x="'+(x1-l)+'" y="'+(yTop-th+l*.18)+'" width="'+l+'" height="'+(h-th+l*.18)+'" fill="white" stroke="#111" stroke-width="1.1"/>';
+ c+='<rect x="'+(x2)+'" y="'+(yTop-th+l*.18)+'" width="'+l+'" height="'+(h-th+l*.18)+'" fill="white" stroke="#111" stroke-width="1.1"/>';
+ c+='<rect x="'+x1+'" y="'+(yTop+rh*.25)+'" width="'+w+'" height="'+rh+'" fill="white" stroke="#111" stroke-width=".9"/>';
+ c+='<rect x="'+x1+'" y="'+(yBottom-m.t*s)+'" width="'+w+'" height="'+(m.t*s)+'" fill="white" stroke="#111" stroke-width=".9"/>';
+ c+='<rect x="'+(x1+l*.2)+'" y="'+shelfY+'" width="'+(w-2*l*.2)+'" height="'+th+'" fill="white" stroke="#111" stroke-width="1"/>';
+ c+='<rect x="'+(x1+l*.5)+'" y="'+drawerY+'" width="'+(m.faceW*s)+'" height="'+(m.drawerFaceH*s)+'" fill="white" stroke="#111" stroke-width="1.2"/>';
+ c+='<circle cx="'+(x1+w/2)+'" cy="'+(drawerY+m.drawerFaceH*s*.52)+'" r="'+Math.max(1.2,th*.7)+'" fill="white" stroke="#111" stroke-width=".8"/>';
+ c+=nsLine(x1-8,yTop-th,x1-8,yBottom,".5","2 2")+nsLine(x1-11,yTop-th,x1-5,yTop-th,".5")+nsLine(x1-11,yBottom,x1-5,yBottom,".5")+nsText(x1-12,(yTop+yBottom)/2,"H "+nsFmt(m.H)+" mm",4.5,"middle",'transform="rotate(-90 '+(x1-12)+' '+((yTop+yBottom)/2)+')"');
+ c+=nsLine(x1-l,yBottom+9,x2+l,yBottom+9,".5")+nsLine(x1-l,yBottom+6,x1-l,yBottom+12,".5")+nsLine(x2+l,yBottom+6,x2+l,yBottom+12,".5")+nsText((x1+x2)/2,yBottom+15,"W "+nsFmt(m.W)+" mm",4.5);
+ c+=nsText(120,8,"FRONT ELEVATION",5.5,"middle");
+ c+=nsText(120,144,"Four corner legs · drawer closed · lower shelf",4.5);
+ return nsSvg(190,153,c,"Calculated finished nightstand front view with drawer and lower shelf");
+}
+function makeNsExploded(m){
+ let c='', x=20,y=15;
+ const boxes=[
+  {id:"01",name:"TOP",x:45,y:12,w:100,h:22,dim:nsFmt(m.W)+" × "+nsFmt(m.D)+" × "+nsFmt(m.t)},
+  {id:"02",name:"CORNER LEGS ×4",x:12,y:55,w:18,h:44,dim:nsFmt(m.leg)+" × "+nsFmt(m.leg)+" × "+nsFmt(m.H-m.t)},
+  {id:"03",name:"LOWER SHELF",x:48,y:76,w:90,h:20,dim:nsFmt(m.innerW)+" × "+nsFmt(m.innerD)+" × "+nsFmt(m.t)},
+  {id:"04/05",name:"FRONT + REAR RAILS",x:49,y:44,w:90,h:9,dim:nsFmt(m.innerW)+" × "+nsFmt(m.railH)+" × "+nsFmt(m.t)},
+  {id:"06",name:"SIDE RAILS ×2",x:148,y:52,w:9,h:55,dim:nsFmt(m.innerD)+" × "+nsFmt(m.railH)+" × "+nsFmt(m.t)},
+  {id:"07",name:"DRAWER FACE",x:50,y:112,w:82,h:16,dim:nsFmt(m.faceW)+" × "+nsFmt(m.drawerFaceH)+" × "+nsFmt(m.t)},
+  {id:"08",name:"DRAWER SIDES ×2",x:20,y:128,w:55,h:8,dim:nsFmt(m.sideLen)+" × "+nsFmt(m.drawerSideH)+" × "+nsFmt(m.t)},
+  {id:"09/10",name:"BACK + BOTTOM",x:105,y:128,w:50,h:8,dim:nsFmt(m.backW)+" × "+nsFmt(m.drawerSideH)+" / "+nsFmt(m.bottomD)+" × "+nsFmt(m.t)}
+ ];
+ boxes.forEach(b=>{
+  c+='<rect x="'+b.x+'" y="'+b.y+'" width="'+b.w+'" height="'+b.h+'" fill="white" stroke="#111" stroke-width=".8"/>';
+  c+=nsText(b.x+b.w/2,b.y+b.h/2+1.5,b.id,4.4);
+  c+=nsText(b.x+b.w/2,b.y+b.h+4,b.name,3.7);
+  c+=nsText(b.x+b.w/2,b.y+b.h+8,b.dim,3.4);
+ });
+ c+=nsText(95,148,"PARTS SHOWN SEPARATELY · NOT TO SCALE",4.5);
+ return nsSvg(190,154,c,"Exploded construction diagram with numbered nightstand components and cut sizes");
+}
+function makeNsOrtho(m){
+ const views=[];
+ const frontW=120, frontH=95, s=Math.min(105/m.W,78/m.H), fw=m.W*s, fh=m.H*s, x=8,y=12;
+ let c=nsText(65,7,"FRONT",5);
+ c+='<rect x="'+(x+8)+'" y="'+y+'" width="'+fw+'" height="'+fh+'" fill="white" stroke="#111" stroke-width=".8"/>';
+ const leg=m.leg*s, rail=m.railH*s, faceH=m.drawerFaceH*s, faceW=m.faceW*s;
+ c+='<rect x="'+(x+8)+'" y="'+(y+fh*.12)+'" width="'+leg+'" height="'+(fh*.88)+'" fill="white" stroke="#111" stroke-width=".6"/>';
+ c+='<rect x="'+(x+8+fw-leg)+'" y="'+(y+fh*.12)+'" width="'+leg+'" height="'+(fh*.88)+'" fill="white" stroke="#111" stroke-width=".6"/>';
+ c+='<rect x="'+(x+8+leg)+'" y="'+(y+fh*.12)+'" width="'+(fw-2*leg)+'" height="'+rail+'" fill="white" stroke="#111" stroke-width=".6"/>';
+ const shelfTop=y+fh*(1-m.shelfTop/m.H);
+ c+='<rect x="'+(x+8+leg)+'" y="'+shelfTop+'" width="'+(fw-2*leg)+'" height="'+(m.t*s)+'" fill="white" stroke="#111" stroke-width=".6"/>';
+ const dy=shelfTop-(m.gap*s)-faceH;
+ c+='<rect x="'+(x+8+(fw-faceW)/2)+'" y="'+dy+'" width="'+faceW+'" height="'+faceH+'" fill="white" stroke="#111" stroke-width=".7"/>';
+ c+=nsText(x+8+fw/2,y+fh+7,"W "+nsFmt(m.W)+" mm",4.2);
+ c+=nsText(x+2,y+fh/2,"H "+nsFmt(m.H)+" mm",4.2,"middle",'transform="rotate(-90 '+(x+2)+' '+(y+fh/2)+')"');
+ const sideX=142, sideY=15, ds=Math.min(36/m.D,72/m.H), sw=m.D*ds, sh=m.H*ds;
+ c+=nsText(sideX+sw/2,8,"SIDE",5);
+ c+='<rect x="'+sideX+'" y="'+sideY+'" width="'+sw+'" height="'+sh+'" fill="white" stroke="#111" stroke-width=".8"/>';
+ c+='<rect x="'+sideX+'" y="'+(sideY+sh-m.t*ds)+'" width="'+sw+'" height="'+(m.t*ds)+'" fill="white" stroke="#111" stroke-width=".6"/>';
+ c+=nsText(sideX+sw/2,sideY+sh+7,"D "+nsFmt(m.D)+" mm",4.2);
+ const topX=16,topY=118,ts=Math.min(80/m.W,30/m.D),tw=m.W*ts,td=m.D*ts;
+ c+=nsText(topX+tw/2,112,"TOP",5);
+ c+='<rect x="'+topX+'" y="'+topY+'" width="'+tw+'" height="'+td+'" fill="white" stroke="#111" stroke-width=".8"/>';
+ c+=nsText(topX+tw/2,topY+td+7,nsFmt(m.W)+" × "+nsFmt(m.D)+" mm",4.2);
+ return nsSvg(190,166,c,"Dimensioned orthographic front, side and top views");
+}
+function renderNightstandPdf(model){
+ const m=model;
+ const byId=id=>document.getElementById(id);
+ byId("nsPdfSummary").textContent="Outside size "+nsFmt(m.W)+" W × "+nsFmt(m.H)+" H × "+nsFmt(m.D)+" D mm · material thickness "+nsFmt(m.t)+" mm · support style: four separate corner legs.";
+ byId("nsFinishedView").innerHTML=m.finishedSvg;
+ byId("nsExplodedView").innerHTML=m.explodedSvg;
+ byId("nsOrthoViews").innerHTML='<div class="ns-view-card"><h3>Front, side and top</h3>'+m.ortho+'</div><div class="ns-view-card"><h3>Key dimensions</h3><p>Outside width: '+nsFmt(m.W)+' mm</p><p>Outside height: '+nsFmt(m.H)+' mm</p><p>Outside depth: '+nsFmt(m.D)+' mm</p><p>Material: '+nsFmt(m.t)+' mm</p><p>Drawer side clearance: '+nsFmt(m.clearance)+' mm each side</p><p>Calculated drawer box depth: '+nsFmt(m.sideLen)+' mm</p><p>Calculated vertical gap above and below drawer: '+nsFmt(m.gap)+' mm</p></div>';
+ byId("nsCutIntro").textContent="Calculated for "+nsFmt(m.W)+" × "+nsFmt(m.H)+" × "+nsFmt(m.D)+" mm outside dimensions using "+nsFmt(m.t)+" mm material. Cut sizes are length × width/height × thickness unless otherwise noted.";
+ byId("nsCutList").innerHTML='<table class="ns-cut-table"><thead><tr><th>No.</th><th>Component</th><th>Qty</th><th>Calculated cut size (mm)</th><th>Function</th></tr></thead><tbody>'+m.parts.map(p=>'<tr><td>'+p.id+'</td><td>'+p.name+'</td><td>'+p.qty+'</td><td>'+nsFmt(p.a)+' × '+nsFmt(p.b)+' × '+nsFmt(p.c)+'</td><td>'+p.purpose+'</td></tr>').join("")+'</tbody></table>';
+ byId("nsGeometryChecks").innerHTML='<h3>Ideal geometry checks</h3><ul>'+m.checks.map(c=>'<li>'+nsEsc(c[0])+': '+(c[1]?'PASS':'FAIL')+'</li>').join("")+'</ul><p class="ns-note">These checks validate calculated relationships only. They do not certify glue joints, cardboard compression, print scaling or real drawer movement. Make a small physical test before final cutting.</p>';
+}
+
 </script>
 </body>
 </html>
