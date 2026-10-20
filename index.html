@@ -555,50 +555,53 @@ function generateNightstandConcept(input){
   warning:"Calculated ideal geometry passed its dimensional checks. Cardboard compression, cut accuracy, glue thickness and drawer movement still require a physical test."};
 }
 function renderNightstandConcept(){
- const status=document.getElementById("nightstandStatus"),preview=document.getElementById("nightstandPreview"),list=document.getElementById("nightstandParts");
+ const status=$("nightstandStatus"),preview=$("nightstandPreview"),list=$("nightstandParts");
  const input={W:Number($("width").value),H:Number($("height").value),D:Number($("depth").value),t:Number($("thickness").value)};
  const r=generateNightstandConcept(input);
  if(!r.ok){status.textContent=r.error;preview.innerHTML="";list.innerHTML="";return;}
  const {W,H,D,t}=input,{leg,railH,shelfW,shelfD,shelfZ,drawerW,drawerH,drawerZ,drawerBoxInnerW,drawerBoxDepth,drawerBoxOuterW,drawerSideH,drawerBottomDepth,clearance,innerW,innerD,zRail}=r;
- // Both drawings use the same coordinates and calculated part dimensions as the cut list.
- const iso=(x,y,z)=>[x+y*.46, z+y*.20];
  const makeSvg=(exploded)=>{
-  const scale=Math.min(230/(W+D*.46+(exploded?W*.24:0)),180/(H+D*.20+(exploded?H*.12:0)));
-  const originX=exploded?220:180, originY=exploded?270:232;
+  const scale=Math.min(210/(W+D*.46+(exploded?W*.20:0)),160/(H+D*.20+(exploded?H*.10:0)));
+  const originX=220,originY=exploded?265:250;
   const P=(x,y,z)=>[originX+(x-W/2)*scale+(y-D/2)*scale*.46,originY-z*scale-(y-D/2)*scale*.20];
   const poly=(vs,fill,tag)=>'<polygon data-part="'+tag+'" points="'+vs.map(v=>{const q=P(...v);return q[0].toFixed(2)+","+q[1].toFixed(2)}).join(" ")+'" fill="'+fill+'" stroke="#654126" stroke-width="1.1" stroke-linejoin="round"/>';
-  const slab=(tag,x,y,z,w,d,h,front,top,side)=> {
+  const slab=(tag,x,y,z,w,d,h,front,top,side)=>{
    const a=[x,y,z],b=[x+w,y,z],c=[x+w,y+d,z],dd=[x,y+d,z],A=[x,y,z+h],B=[x+w,y,z+h],C=[x+w,y+d,z+h],E=[x,y+d,z+h];
    return poly([A,B,C,E],top,tag+" top")+poly([b,c,C,B],side,tag+" side")+poly([a,b,B,A],front,tag+" front");
   };
-  const dx=exploded?W*.16:0, dy=exploded?D*.13:0, dz=exploded?H*.11:0;
-  let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 330" role="img" aria-label="'+(exploded?"Exploded nightstand assembly with separated calculated panels":"Assembled nightstand preview from customer dimensions")+'" data-model-width="'+W+'" data-model-height="'+H+'" data-model-depth="'+D+'" data-material-thickness="'+t+'"><text x="220" y="18" text-anchor="middle" font-size="13" font-weight="700" fill="#5c3b27">'+(exploded?"EXPLODED VIEW · PARTS SPREAD APART":"ASSEMBLED VIEW · CUSTOMER DIMENSIONS")+'</text>';
-  // Rear supports and structure first, front supports next, drawer visible, top last.
-  const gap=exploded?Math.max(4,t*2):0;
-  s+=slab("rear-left-leg",exploded?-dx:0,D-leg+dy,0,leg,leg,H-t,"#8f5c38","#b78358","#75482d");
-  s+=slab("rear-right-leg",exploded?W-leg+dx:W-leg,D-leg+dy,0,leg,leg,H-t,"#8f5c38","#b78358","#75482d");
-  s+=slab("shelf",leg,leg+dy,shelfZ-dz,shelfW,shelfD,t,"#b78358","#d7b18c","#8f5c38");
-  s+=slab("rear-rail",leg,D-t+dy,zRail,W-2*leg,t,railH,"#8f5c38","#b78358","#75482d");
+  const ex=exploded?Math.max(2*t,W*.08):0, ey=exploded?Math.max(2*t,D*.10):0, ez=exploded?Math.max(2*t,H*.07):0;
+  let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 360" role="img" aria-label="'+(exploded?"Exploded nightstand assembly with separated calculated panels":"Assembled nightstand preview with drawer and dimensions")+'" data-model-width="'+W+'" data-model-height="'+H+'" data-model-depth="'+D+'" data-material-thickness="'+t+'"><text x="220" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#5c3b27">'+(exploded?"EXPLODED VIEW · PARTS SEPARATED":"ASSEMBLED VIEW · CUSTOMER DIMENSIONS")+'</text>';
+  // Rear legs, shelf and rails are drawn first. The front legs and drawer face are drawn last
+  // so the visible front edges stay legible and the drawer is not hidden behind the frame.
+  s+=slab("rear-left-leg",exploded?-ex:0,D-leg+(exploded?ey:0),0,leg,leg,H-t,"#8f5c38","#b78358","#75482d");
+  s+=slab("rear-right-leg",exploded?W-leg+ex:W-leg,D-leg+(exploded?ey:0),0,leg,leg,H-t,"#8f5c38","#b78358","#75482d");
+  s+=slab("shelf",leg,leg+(exploded?ey:0),shelfZ-(exploded?ez:0),shelfW,shelfD,t,"#b78358","#d7b18c","#8f5c38");
+  s+=slab("rear-rail",leg,D-t+(exploded?ey:0),zRail,W-2*leg,t,railH,"#8f5c38","#b78358","#75482d");
   s+=slab("left-rail",0,leg,zRail,t,D-2*leg,railH,"#8f5c38","#b78358","#75482d");
   s+=slab("right-rail",W-t,leg,zRail,t,D-2*leg,railH,"#8f5c38","#b78358","#75482d");
   s+=slab("front-rail",leg,0,zRail,W-2*leg,t,railH,"#a56f46","#c08d60","#75482d");
-  s+=slab("front-left-leg",exploded?-dx:0,exploded?-gap:0,0,leg,leg,H-t,"#a56f46","#c08d60","#75482d");
-  s+=slab("front-right-leg",exploded?W-leg+dx:W-leg,exploded?-gap:0,0,leg,leg,H-t,"#a56f46","#c08d60","#75482d");
-  // Drawer box panels are offset only in exploded mode; the assembled mode keeps them behind the face.
-  const boxY=exploded?-dy:t;
-  s+=slab("drawer-side-left",leg+clearance+t,boxY,drawerZ+dz, t,drawerBoxDepth,drawerSideH,"#a56f46","#c08d60","#75482d");
-  s+=slab("drawer-side-right",leg+clearance+drawerBoxOuterW-t,boxY,drawerZ+dz,t,drawerBoxDepth,drawerSideH,"#a56f46","#c08d60","#75482d");
-  s+=slab("drawer-back",leg+clearance+2*t,boxY+drawerBoxDepth-t,drawerZ+dz,drawerBoxInnerW,t,drawerSideH,"#8f5c38","#b78358","#75482d");
-  s+=slab("drawer-bottom",leg+clearance+2*t,boxY,drawerZ+dz,drawerBoxInnerW,drawerBottomDepth,t,"#b78358","#d7b18c","#8f5c38");
-  s+=slab("drawer-front",leg+clearance,exploded?-dy*1.5:0,drawerZ+dz,drawerW,t,drawerH,"#c08d60","#d7b18c","#8f5c38");
-  s+=slab("top",exploded? -dx*.2:0,exploded?-dy:0,H-t+(exploded?dz:0),W,D,t,"#c59a70","#e4c29f","#9b6843");
+  s+=slab("front-left-leg",exploded?-ex:0,exploded?-ey:0,0,leg,leg,H-t,"#a56f46","#c08d60","#75482d");
+  s+=slab("front-right-leg",exploded?W-leg+ex:W-leg,exploded?-ey:0,0,leg,leg,H-t,"#a56f46","#c08d60","#75482d");
+  // Drawer box: two side walls, rear wall and bottom are separate panels behind the front.
+  const boxY=exploded?-ey*1.5:t, boxZ=drawerZ+(exploded?ez:0), boxX=leg+clearance+t;
+  s+=slab("drawer-side-left",boxX,boxY,boxZ,t,drawerBoxDepth,drawerSideH,"#a56f46","#c08d60","#75482d");
+  s+=slab("drawer-side-right",leg+clearance+drawerW-2*t,boxY,boxZ,t,drawerBoxDepth,drawerSideH,"#a56f46","#c08d60","#75482d");
+  s+=slab("drawer-back",leg+clearance+2*t,boxY+drawerBoxDepth-t,boxZ,drawerBoxInnerW,t,drawerSideH,"#8f5c38","#b78358","#75482d");
+  s+=slab("drawer-bottom",leg+clearance+2*t,boxY,boxZ,drawerBoxInnerW,drawerBottomDepth,t,"#b78358","#d7b18c","#8f5c38");
+  s+=slab("drawer-front",leg+clearance,exploded?-ey*2.2:0,drawerZ+(exploded?ez*1.8:0),drawerW,t,drawerH,"#c08d60","#d7b18c","#8f5c38");
+  s+=slab("top",exploded?-ex*.15:0,exploded?-ey:0,H-t+(exploded?ez:0),W,D,t,"#c59a70","#e4c29f","#9b6843");
   if(exploded){
-   s+='<g fill="#5c3b27" font-size="11" font-weight="700"><text x="30" y="52">L · LEGS ×4</text><text x="330" y="52">T · TOP ×1</text><text x="26" y="302">S · SHELF ×1</text><text x="320" y="302">DF · DRAWER FRONT</text></g>';
+   s+='<g fill="#5c3b27" font-size="11" font-weight="700"><text x="28" y="48">L · LEGS ×4</text><text x="345" y="48">T · TOP ×1</text><text x="26" y="320">S · SHELF ×1</text><text x="340" y="320">DF · DRAWER FRONT</text><text x="220" y="341" text-anchor="middle" font-size="10" font-weight="500">Dashed-free spacing is illustrative; cut sizes are listed below.</text></g>';
+  } else {
+   // Callouts are intentionally outside the object silhouette and show the customer's calculated values.
+   s+='<g fill="#5c3b27" font-size="10" font-weight="700"><text x="16" y="52">Drawer width: '+fmt(drawerW)+' mm</text><text x="16" y="66">Drawer height: '+fmt(drawerH)+' mm</text><text x="424" y="52" text-anchor="end">Side clearance: '+fmt(clearance)+' mm each</text><text x="424" y="66" text-anchor="end">Material: '+fmt(t)+' mm</text></g>';
+   s+='<path d="M'+P(leg+clearance,0,drawerZ)[0].toFixed(1)+' '+P(leg+clearance,0,drawerZ)[1].toFixed(1)+' L16 74 M'+P(leg+clearance+drawerW,0,drawerZ)[0].toFixed(1)+' '+P(leg+clearance+drawerW,0,drawerZ)[1].toFixed(1)+' L424 74" fill="none" stroke="#92704f" stroke-width="1" stroke-dasharray="3 3"/>';
   }
-  s+='<text x="220" y="322" text-anchor="middle" font-size="11" fill="#5c3b27">'+W+' W × '+H+' H × '+D+' D mm · material '+t+' mm</text></svg>';
+  s+='<text x="220" y="354" text-anchor="middle" font-size="11" fill="#5c3b27">'+W+' W × '+H+' H × '+D+' D mm · material '+t+' mm</text></svg>';
   return s;
  };
- preview.innerHTML='<div class="nightstand-view-grid"><div class="nightstand-view-card"><h3>Finished nightstand</h3><p class="muted">Proportional assembled view.</p>'+makeSvg(false)+'</div><div class="nightstand-view-card"><h3>How the parts separate</h3><p class="muted">Exploded concept view. Use the cut list for exact sizes.</p>'+makeSvg(true)+'</div></div>';
+ const shelfTop=shelfZ+t, drawerBottomGap=drawerZ-shelfTop, drawerTopGap=zRail-(drawerZ+drawerH);
+ preview.innerHTML='<div class="nightstand-view-grid"><div class="nightstand-view-card"><h3>Finished nightstand</h3><p class="muted">Drawer face and calculated clearances are labelled on the drawing.</p>'+makeSvg(false)+'</div><div class="nightstand-view-card"><h3>How the parts separate</h3><p class="muted">Exploded view shows the drawer front and box panels as separate pieces.</p>'+makeSvg(true)+'</div></div><section class="nightstand-view-card" style="margin-top:12px"><h3>Drawer dimensions and placement</h3><div class="fields"><div><strong>Front width</strong><br>'+fmt(drawerW)+' mm</div><div><strong>Front height</strong><br>'+fmt(drawerH)+' mm</div><div><strong>Clearance at each side</strong><br>'+fmt(clearance)+' mm</div><div><strong>Gap above shelf</strong><br>'+fmt(drawerBottomGap)+' mm</div><div><strong>Gap below upper rail</strong><br>'+fmt(drawerTopGap)+' mm</div><div><strong>Drawer box depth</strong><br>'+fmt(drawerBoxDepth)+' mm</div></div><p class="muted">These are ideal calculated clearances. Glue, cutting error and cardboard compression can change the real fit; confirm with a material test.</p></section>';
  list.innerHTML=r.parts.map(p=>'<div class="nightstand-part" data-part-id="'+p.id+'"><strong>'+p.id+' — '+p.name+'</strong><span>Cut '+p.qty+' · '+fmt(p.a)+' × '+fmt(p.b)+' × '+fmt(p.c)+' mm</span><p class="muted">'+p.role+'</p></div>').join("");
  status.textContent="Dimensional checks passed for ideal geometry: outside size "+fmt(r.checks.outsideWidth)+" × "+fmt(r.checks.outsideHeight)+" × "+fmt(r.checks.outsideDepth)+" mm. Material thickness "+fmt(t)+" mm is included in the cut calculations. "+r.warning;
 }
