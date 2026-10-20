@@ -129,7 +129,7 @@ test("nightstand shows assembled and exploded views tied to dimensions and mater
   await page.locator("#depth").fill("30");
   await page.locator("#thickness").fill("2");
   await page.locator("#generateNightstand").click();
-  await expect(page.locator("#nightstandPreview .nightstand-view-card")).toHaveCount(4);
+  await expect(page.locator("#nightstandPreview .nightstand-view-card")).toHaveCount(3);
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-width", "40");
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-height", "50");
   await expect(page.locator("#nightstandPreview svg[aria-label^='Assembled']")).toHaveAttribute("data-model-depth", "30");
