@@ -86,3 +86,56 @@ test("scaled external reference cut list matches the generator's joint equations
   await expect(page.locator("#cutRows")).toContainText("228.6 × 114.3");
   await expect(page.locator("#cutRows")).toContainText("243.84 × 485.14");
 });
+
+
+test("nightstand engineering pages are generated only when Print / Save as PDF is clicked", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.addInitScript(() => {
+    window.print = () => { window.__printCalled = true; };
+  });
+  await page.goto(appUrl);
+  await expect(page.locator("#nightstandPdfSection")).toBeHidden();
+  await expect(page.locator("#nightstandPdfSection")).toContainText("");
+  await expect(page.locator("body")).not.toContainText("Generate Nightstand");
+  await page.locator("#width").fill("36");
+  await page.locator("#height").fill("45");
+  await page.locator("#depth").fill("27");
+  await page.locator("#thickness").fill("1");
+  await page.locator("#print").click();
+  await expect(page.locator("#nsPdfSummary")).toContainText("36 W × 45 H × 27 D mm");
+  await expect(page.locator("#nsFinishedView svg")).toHaveAttribute("aria-label", /finished nightstand/i);
+  await expect(page.locator("#nsExplodedView svg")).toHaveAttribute("aria-label", /exploded construction/i);
+  await expect(page.locator("#nsCutList tbody tr")).toHaveCount(10);
+  await expect(page.locator("#nsCutList")).toContainText("Corner legs");
+  await expect(page.locator("#nsCutList")).toContainText("Drawer bottom");
+  expect(await page.evaluate(() => window.__printCalled)).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("nightstand PDF drawings and cut list recalculate from the current dimensions", async ({ page }) => {
+  await page.addInitScript(() => { window.print = () => { window.__printCalled = true; }; });
+  await page.goto(appUrl);
+  await page.locator("#width").fill("40");
+  await page.locator("#height").fill("50");
+  await page.locator("#depth").fill("30");
+  await page.locator("#thickness").fill("1");
+  await page.locator("#print").click();
+  await expect(page.locator("#nsPdfSummary")).toContainText("40 W × 50 H × 30 D mm");
+  await expect(page.locator("#nsCutIntro")).toContainText("40 × 50 × 30 mm");
+  await expect(page.locator("#nsCutList")).toContainText("40 × 30 × 1");
+  await expect(page.locator("#nsGeometryChecks")).toContainText("Positive part sizes: PASS");
+  expect(await page.evaluate(() => window.__printCalled)).toBe(true);
+});
+
+test("nightstand blueprint refuses dimensions that cannot support a drawer and frame", async ({ page }) => {
+  await page.addInitScript(() => { window.print = () => { window.__printCalled = true; }; });
+  await page.goto(appUrl);
+  await page.locator("#width").fill("10");
+  await page.locator("#height").fill("10");
+  await page.locator("#depth").fill("5");
+  await page.locator("#thickness").fill("1");
+  await page.locator("#print").click();
+  await expect(page.locator("#error")).toContainText("do not leave enough room");
+  expect(await page.evaluate(() => Boolean(window.__printCalled))).toBe(false);
+});
