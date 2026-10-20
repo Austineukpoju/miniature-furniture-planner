@@ -612,23 +612,40 @@ function generateNightstandBlueprint(input){
  return {ok:true,model};
 }
 function makeNsFinished(m){
- const s=3.1, ox=35, oy=15, w=m.W*s,h=m.H*s,d=m.D*s,l=m.leg*s,rh=m.railH*s,th=m.t*s;
- const yTop=oy+10, yBottom=yTop+h, x1=ox+30, x2=x1+w;
- const shelfY=yBottom-m.shelfTop*s, drawerY=yBottom-(m.shelfTop+m.gap+m.drawerFaceH)*s;
- let c='';
- c+='<rect x="'+(x1-l)+'" y="'+(yTop-th)+'" width="'+(w+2*l)+'" height="'+th+'" fill="white" stroke="#111" stroke-width="1.1"/>';
- c+='<rect x="'+(x1-l)+'" y="'+(yTop-th+l*.18)+'" width="'+l+'" height="'+(h-th+l*.18)+'" fill="white" stroke="#111" stroke-width="1.1"/>';
- c+='<rect x="'+(x2)+'" y="'+(yTop-th+l*.18)+'" width="'+l+'" height="'+(h-th+l*.18)+'" fill="white" stroke="#111" stroke-width="1.1"/>';
- c+='<rect x="'+x1+'" y="'+(yTop+rh*.25)+'" width="'+w+'" height="'+rh+'" fill="white" stroke="#111" stroke-width=".9"/>';
- c+='<rect x="'+x1+'" y="'+(yBottom-m.t*s)+'" width="'+w+'" height="'+(m.t*s)+'" fill="white" stroke="#111" stroke-width=".9"/>';
- c+='<rect x="'+(x1+l*.2)+'" y="'+shelfY+'" width="'+(w-2*l*.2)+'" height="'+th+'" fill="white" stroke="#111" stroke-width="1"/>';
- c+='<rect x="'+(x1+l*.5)+'" y="'+drawerY+'" width="'+(m.faceW*s)+'" height="'+(m.drawerFaceH*s)+'" fill="white" stroke="#111" stroke-width="1.2"/>';
- c+='<circle cx="'+(x1+w/2)+'" cy="'+(drawerY+m.drawerFaceH*s*.52)+'" r="'+Math.max(1.2,th*.7)+'" fill="white" stroke="#111" stroke-width=".8"/>';
- c+=nsLine(x1-8,yTop-th,x1-8,yBottom,".5","2 2")+nsLine(x1-11,yTop-th,x1-5,yTop-th,".5")+nsLine(x1-11,yBottom,x1-5,yBottom,".5")+nsText(x1-12,(yTop+yBottom)/2,"H "+nsFmt(m.H)+" mm",4.5,"middle",'transform="rotate(-90 '+(x1-12)+' '+((yTop+yBottom)/2)+')"');
- c+=nsLine(x1-l,yBottom+9,x2+l,yBottom+9,".5")+nsLine(x1-l,yBottom+6,x1-l,yBottom+12,".5")+nsLine(x2+l,yBottom+6,x2+l,yBottom+12,".5")+nsText((x1+x2)/2,yBottom+15,"W "+nsFmt(m.W)+" mm",4.5);
- c+=nsText(120,8,"FRONT ELEVATION",5.5,"middle");
- c+=nsText(120,144,"Four corner legs · drawer closed · lower shelf",4.5);
- return nsSvg(190,153,c,"Calculated finished nightstand front view with drawer and lower shelf");
+ const s=Math.min(75/m.W,76/m.H,30/m.D), wx=m.W*s, hy=m.H*s, dx=m.D*s*.55, dy=m.D*s*.38, leg=m.leg*s, th=m.t*s;
+ const x0=27, y0=126, frontLeft={x:x0,y:y0}, frontRight={x:x0+wx,y:y0}, rearLeft={x:x0+dx,y:y0-dy}, rearRight={x:x0+wx+dx,y:y0-dy};
+ const Y=(p,h)=>({x:p.x,y:p.y-h*s});
+ const poly=pts=>'<polygon points="'+pts.map(p=>p.x+','+p.y).join(' ')+'" fill="white" stroke="#111" stroke-width=".9" stroke-linejoin="round"/>';
+ let c=nsText(95,7,"FINISHED NIGHTSTAND · ISOMETRIC",5.5);
+ const topFL=Y(frontLeft,m.H),topFR=Y(frontRight,m.H),topRL=Y(rearLeft,m.H),topRR=Y(rearRight,m.H);
+ // Four posts are drawn first; the tabletop and drawer face sit in front of them.
+ const legBottom=[{x:frontLeft.x+leg/2,y:y0},{x:frontRight.x-leg/2,y:y0},{x:rearLeft.x+leg/2,y:rearLeft.y},{x:rearRight.x-leg/2,y:rearRight.y}];
+ legBottom.forEach(p=>c+=nsLine(p.x,p.y,p.x,p.y-m.H*s,""+Math.max(1,leg),""));
+ // Shelf plane between the posts.
+ const shelfLevel=m.shelfY;
+ const shelfFL=Y(frontLeft,shelfLevel), shelfFR=Y(frontRight,shelfLevel), shelfRL=Y(rearLeft,shelfLevel), shelfRR=Y(rearRight,shelfLevel);
+ c+=poly([shelfFL,shelfFR,shelfRR,shelfRL]);
+ // Aprons immediately beneath the top, on front and right side.
+ const railBottom=m.H-m.t-m.railH;
+ c+=poly([Y(frontLeft,railBottom),Y(frontRight,railBottom),Y(frontRight,railBottom+m.railH),Y(frontLeft,railBottom+m.railH)]);
+ c+=poly([Y(frontRight,railBottom),Y(rearRight,railBottom),Y(rearRight,railBottom+m.railH),Y(frontRight,railBottom+m.railH)]);
+ // Top panel with visible top and right edge thickness.
+ const topUnderFL=Y(frontLeft,m.H-m.t),topUnderFR=Y(frontRight,m.H-m.t),topUnderRL=Y(rearLeft,m.H-m.t),topUnderRR=Y(rearRight,m.H-m.t);
+ c+=poly([topFL,topFR,topRR,topRL]);
+ c+=poly([topFR,topRR,topUnderRR,topUnderFR]);
+ c+=poly([topFL,topFR,topUnderFR,topUnderFL]);
+ // Drawer face on the front, located from calculated shelf and rail clearances.
+ const drawerBottom=m.shelfTop+m.gap, drawerTop=drawerBottom+m.drawerFaceH;
+ const faceLeft={x:x0+leg+((m.innerW-m.faceW)/2)*s,y:y0-drawerBottom*s};
+ const faceRight={x:faceLeft.x+m.faceW*s,y:faceLeft.y};
+ c+=poly([faceLeft,faceRight,{x:faceRight.x,y:faceRight.y-m.drawerFaceH*s},{x:faceLeft.x,y:faceLeft.y-m.drawerFaceH*s}]);
+ c+='<circle cx="'+((faceLeft.x+faceRight.x)/2)+'" cy="'+(faceLeft.y-m.drawerFaceH*s*.52)+'" r="'+Math.max(1,th*.7)+'" fill="white" stroke="#111" stroke-width=".7"/>';
+ // Dimension leaders for overall width, height and depth.
+ c+=nsLine(frontLeft.x, y0+7,frontRight.x,y0+7,".5")+nsLine(frontLeft.x,y0+4,frontLeft.x,y0+10,".5")+nsLine(frontRight.x,y0+4,frontRight.x,y0+10,".5")+nsText((frontLeft.x+frontRight.x)/2,y0+13,"W "+nsFmt(m.W)+" mm",4.4);
+ c+=nsLine(17,y0,17,topFL.y,".5")+nsLine(14,y0,20,y0,".5")+nsLine(14,topFL.y,20,topFL.y,".5")+nsText(13,(y0+topFL.y)/2,"H "+nsFmt(m.H),4.2,"middle",'transform="rotate(-90 13 '+((y0+topFL.y)/2)+')"');
+ c+=nsLine(frontRight.x+4,frontRight.y-1,rearRight.x+4,rearRight.y-1,".5")+nsText(frontRight.x+dx*.55+7,frontRight.y-dy*.55-3,"D "+nsFmt(m.D)+" mm",4.1);
+ c+=nsText(95,151,"Four corner legs · drawer face · tabletop · lower shelf",4.5);
+ return nsSvg(190,158,c,"Finished nightstand isometric engineering line drawing generated from current dimensions");
 }
 function makeNsExploded(m){
  let c='', x=20,y=15;
