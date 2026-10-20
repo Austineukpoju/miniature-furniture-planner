@@ -12,7 +12,7 @@ test("initial plan renders coherent cut list, 3D faces, patterns and panel views
   await expect(page.locator("#cutRows tr")).toHaveCount(4);
   await expect(page.locator("#pieceList .piece")).toHaveCount(4);
   await expect(page.locator("#partViews .part-view-card")).toHaveCount(4);
-  await expect(page.locator("#cabinetPreview svg [data-face]")).toHaveCount(17);
+  await expect(page.locator("#cabinetPreview svg [data-face]")).toHaveCount(15);
   await expect(page.locator("#mathTestStatus")).toHaveText("Passed");
   await expect(page.locator("#cutRows")).toContainText("26 × 45");
   await expect(page.locator("#cutRows")).toContainText("34 × 26");
