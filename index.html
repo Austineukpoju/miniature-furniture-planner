@@ -64,7 +64,7 @@ footer{text-align:center;color:var(--muted);font-size:.8rem;padding:0 18px 28px}
 <h2>Mathematical foundation audit</h2>
 <p><strong>Geometry model:</strong> the top and bottom fit between the two side panels; the back covers the rear edges and adds its thickness to the overall depth.</p>
 <div class="stats">
-<div class="stat"><strong id="mathTestCount">—</strong><span>Random geometry cases checked</span></div>
+<div class="stat"><strong id="mathTestCount">—</strong><span>Geometry checks passed</span></div>
 <div class="stat"><strong id="mathTestStatus">Pending</strong><span>Ideal-dimension checks</span></div>
 <div class="stat"><strong id="mathTolerance">—</strong><span>Estimated tolerance budget</span></div>
 </div>
@@ -375,7 +375,7 @@ function updateMathAudit() {
   const status = document.getElementById("mathTestStatus");
   const note = document.getElementById("mathAuditNote");
   const tolerance = document.getElementById("mathTolerance");
-  if (count) count.textContent = audit.count.toLocaleString();
+  if (count) count.textContent = audit.count.toLocaleString() + (audit.ok ? "+" : "");
   if (status) status.textContent = audit.ok ? "Passed" : "Failed";
   if (note) note.textContent = audit.message;
   if (tolerance) tolerance.textContent = "4× cut error";
