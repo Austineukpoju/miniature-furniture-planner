@@ -505,15 +505,18 @@ function generateNightstandConcept(input){
  const clearance=Math.max(0.5*t,0.5);
  const innerW=W-2*leg;
  const innerD=D-2*leg;
- const shelfW=innerW-2*t;
- const shelfD=innerD-2*t;
+ const shelfW=innerW;
+ const shelfD=innerD;
  const shelfZ=H*0.30;
  const drawerW=innerW-2*clearance;
  const drawerH=Math.max(3*t,Math.min(H*0.20,H-shelfZ-railH-3*t));
  const drawerD=innerD-2*t;
+ const drawerBoxW=drawerW-2*t;
+ const drawerBoxInnerW=drawerBoxW-2*t;
+ const drawerBoxDepth=drawerD-t;
  const legH=H-t;
  if(leg>=W/2||leg>=D/2||innerW<=2*t||innerD<=2*t||shelfW<=0||shelfD<=0||
-    drawerW<=2*t||drawerD<=2*t||drawerH<=2*t||shelfZ+ t+drawerH+railH>H-t){
+    drawerW<=4*t||drawerD<=2*t||drawerBoxDepth<=0||drawerH<=2*t||shelfZ+t+drawerH+railH>H-t){
   return {ok:false,error:"These dimensions are too small for the nightstand construction. Increase the width, height or depth, or use thinner material."};
  }
  const parts=[
@@ -524,9 +527,9 @@ function generateNightstandConcept(input){
   {id:"RB",name:"Rear rail / apron",qty:1,a:innerW,b:railH,c:t,role:"Fits between the rear legs directly below the top."},
   {id:"RL/RR",name:"Side rails / aprons",qty:2,a:innerD,b:railH,c:t,role:"Fit between the front and rear legs directly below the top."},
   {id:"DF",name:"Drawer face",qty:1,a:drawerW,b:drawerH,c:t,role:"Sits between the front legs with a calculated side clearance."},
-  {id:"DS",name:"Drawer sides",qty:2,a:drawerD,b:drawerH-t,c:t,role:"Attach behind the drawer face; rear panel closes the box."},
-  {id:"DB",name:"Drawer back",qty:1,a:drawerW-2*t,b:drawerH-t,c:t,role:"Fits between the drawer side panels."},
-  {id:"DN",name:"Drawer bottom",qty:1,a:drawerW-2*t,b:drawerD,c:t,role:"Fits under the box side and rear panels; bottom thickness is included in total drawer height."}
+  {id:"DS",name:"Drawer sides",qty:2,a:drawerBoxDepth,b:drawerH-t,c:t,role:"Attach behind the face; their length leaves room for the rear panel."},
+  {id:"DB",name:"Drawer back",qty:1,a:drawerBoxInnerW,b:drawerH-t,c:t,role:"Fits between the drawer side panels."},
+  {id:"DN",name:"Drawer bottom",qty:1,a:drawerBoxInnerW,b:drawerBoxDepth,c:t,role:"Fits inside the drawer box; bottom thickness is included in total drawer height."}
  ];
  if(parts.some(p=>![p.a,p.b,p.c].every(Number.isFinite)||p.a<=0||p.b<=0||p.c<=0))
   return {ok:false,error:"At least one panel dimension is not positive. Change the measurements."};
@@ -534,8 +537,8 @@ function generateNightstandConcept(input){
   outsideWidth:2*leg+W-2*leg,
   outsideHeight:legH+t,
   outsideDepth:2*leg+(D-2*leg),
-  shelfFitsWidth:shelfW+2*t===innerW,
-  shelfFitsDepth:shelfD+2*t===innerD,
+  shelfFitsWidth:shelfW===innerW,
+  shelfFitsDepth:shelfD===innerD,
   drawerFaceFitsOpening:drawerW+2*clearance===innerW,
   topCoversLegs:W>=2*leg&&D>=2*leg,
   allPartsPositive:parts.every(p=>p.a>0&&p.b>0&&p.c>0),
@@ -566,7 +569,7 @@ function renderNightstandConcept(){
  svg+=slab(W-leg,D-leg,0,leg,leg,H-t,"#8f5c38","#b78358","#75482d");
  svg+=slab(0,0,0,leg,leg,H-t,"#a56f46","#c08d60","#75482d");
  svg+=slab(W-leg,0,0,leg,leg,H-t,"#a56f46","#c08d60","#75482d");
- svg+=slab(leg,leg,shelfZ,W-2*leg,D-2*leg,t,"#b78358","#d7b18c","#8f5c38");
+ svg+=slab(leg,leg,shelfZ,shelfW,shelfD,t,"#b78358","#d7b18c","#8f5c38");
  const zRail=H-t-railH;
  svg+=slab(leg,0,zRail,W-2*leg,t,railH,"#a56f46","#c08d60","#75482d");
  svg+=slab(leg,D-t,zRail,W-2*leg,t,railH,"#8f5c38","#b78358","#75482d");
@@ -574,7 +577,7 @@ function renderNightstandConcept(){
  svg+=slab(W-t,leg,zRail,t,D-2*leg,railH,"#8f5c38","#b78358","#75482d");
  const drawerZ=shelfZ+t+Math.max(t,(H-t-railH-(shelfZ+t)-drawerH)/2);
  svg+=slab(leg+ r.clearance,0,drawerZ,drawerW,t,drawerH,"#c08d60","#d7b18c","#8f5c38");
- svg+=slab(leg+ r.clearance,t,drawerZ,drawerW-2*t,drawerD,drawerH-t,"#a56f46","#c08d60","#75482d");
+ svg+=slab(leg+ r.clearance+t,t,drawerZ,drawerBoxInnerW,drawerBoxDepth,drawerH-t,"#a56f46","#c08d60","#75482d");
  svg+=slab(0,0,H-t,W,D,t,"#c59a70","#e4c29f","#9b6843");
  svg+='<text x="180" y="258" text-anchor="middle" font-size="10" fill="#5c3b27">'+fmt(W)+' W × '+fmt(H)+' H × '+fmt(D)+' D mm</text></svg>';
  preview.innerHTML=svg;
