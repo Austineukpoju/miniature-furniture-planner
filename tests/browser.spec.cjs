@@ -86,3 +86,49 @@ test("scaled external reference cut list matches the generator's joint equations
   await expect(page.locator("#cutRows")).toContainText("228.6 × 114.3");
   await expect(page.locator("#cutRows")).toContainText("243.84 × 485.14");
 });
+
+test("exploded diagram opens in an accessible enlarged overlay and closes cleanly", async ({ page }) => {
+  await page.goto(appUrl);
+  const opener = page.locator("#openDiagramModal");
+  await expect(opener).toBeVisible();
+  await opener.click();
+  await expect(page.locator("#diagramModal")).toHaveAttribute("open", "");
+  await expect(page.locator("#diagramModalContent svg")).toBeVisible();
+  await page.locator("#closeDiagramModal").click();
+  await expect(page.locator("#diagramModal")).not.toHaveAttribute("open", "");
+});
+
+test("nightstand concept recalculates its parts from current dimensions and marks limits clearly", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto(appUrl);
+  await page.locator("#generateNightstand").click();
+  await expect(page.locator("#nightstandPreview svg")).toBeVisible();
+  await expect(page.locator("#nightstandParts .nightstand-part")).toHaveCount(10);
+  await expect(page.locator("#nightstandParts")).toContainText("Corner legs");
+  await expect(page.locator("#nightstandParts")).toContainText("Drawer front");
+  await expect(page.locator("#nightstandStatus")).toContainText("Experimental only");
+  const first = await page.locator("#nightstandParts").innerText();
+  await page.locator("#width").fill("40");
+  await page.locator("#height").fill("50");
+  await page.locator("#depth").fill("30");
+  await page.locator("#thickness").fill("1");
+  await page.locator("#generateNightstand").click();
+  const second = await page.locator("#nightstandParts").innerText();
+  expect(second).not.toEqual(first);
+  expect(errors).toEqual([]);
+});
+
+test("nightstand generator rejects impossible dimensions instead of showing an old concept", async ({ page }) => {
+  await page.goto(appUrl);
+  await page.locator("#generateNightstand").click();
+  await expect(page.locator("#nightstandPreview svg")).toBeVisible();
+  await page.locator("#width").fill("10");
+  await page.locator("#height").fill("10");
+  await page.locator("#depth").fill("5");
+  await page.locator("#thickness").fill("10");
+  await page.locator("#generateNightstand").click();
+  await expect(page.locator("#nightstandStatus")).toContainText("width");
+  await expect(page.locator("#nightstandPreview svg")).toHaveCount(0);
+  await expect(page.locator("#nightstandParts .nightstand-part")).toHaveCount(0);
+});
